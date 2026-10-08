@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -328,7 +329,11 @@ func main() {
 
 	enterBackgroundMode()
 	host, _ := os.Hostname()
-	a := &agent{url: *url, token: *tok, client: &http.Client{}, base: payload{
+	// Spec 5.2 keep-alive: hold the connection open however long the interval, and resume TLS if the server drops it.
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.IdleConnTimeout = 0
+	t.TLSClientConfig = &tls.Config{ClientSessionCache: tls.NewLRUClientSessionCache(1)}
+	a := &agent{url: *url, token: *tok, client: &http.Client{Transport: t}, base: payload{
 		PC: host, MAC: primaryMAC(), BootID: newBootID(), AgentVersion: version,
 	}}
 	if procXInputGetState.Find() == nil { // xinput1_4.dll ships with Windows 8 and later
