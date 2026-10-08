@@ -33,7 +33,7 @@ Show the live status of all 30 diskless gaming PCs on a simple web dashboard:
 ## 2. Design principles for near-zero impact
 
 1. **Nothing on the CCBoot server, switches, DHCP or PXE.** The server feeds disk I/O to every PC; any load there is felt by all 30 gamers.
-2. **The PC agent does one thing:** read a counter Windows already maintains (`GetLastInputInfo`) and report it. No keyboard/mouse hooks, no process scanning, no screenshots, no access to game memory. This also keeps it invisible to anti-cheat systems.
+2. **The PC agent does one thing:** read input times Windows already tracks and report them. It reads the keyboard/mouse counter (`GetLastInputInfo`) and the game controllers' state (`XInputGetState`); both are read-only queries. No keyboard/mouse hooks, no process scanning, no screenshots, no access to game memory. This also keeps it invisible to anti-cheat systems.
 3. **Zero disk writes.** On a diskless PC every write goes to CCBoot's write-back cache on the server. The agent writes no logs, no temp files and no config.
 4. **Lowest priority.** The agent runs in Windows background mode (low CPU, I/O and memory priority), single-threaded, and sleeps between heartbeats.
 5. **Fixed, tiny, outbound-only traffic.** One ~200-byte HTTPS message per minute per PC. No inbound ports are opened anywhere.
@@ -104,9 +104,17 @@ Oracle account housekeeping (protects the free VM):
    - Immediately switches itself to background mode (`PROCESS_MODE_BACKGROUND_BEGIN`).
    - Waits a random 0–30 s, so 30 PCs powered on together don't report in the same second.
    - Sends a `boot` event.
-2. **Loop:** every `interval` seconds (default 60), computes `idle_s = (GetTickCount() − LASTINPUTINFO.dwTime) / 1000` and sends a `heartbeat`.
-   - Both values are 32-bit, so the subtraction stays correct when the counter wraps around.
+2. **Loop:** every `interval` seconds (default 60), sends a `heartbeat` with `idle_s` = time since the most recent keyboard, mouse **or controller** input.
+   - Keyboard and mouse: `(GetTickCount() − LASTINPUTINFO.dwTime) / 1000`. Both values are 32-bit, so the subtraction stays correct when the counter wraps around.
+   - **Controllers:** Xbox-style controllers (XInput) do *not* update the Windows input counter. Without them, a FIFA or Rocket League player on a controller would show Idle.
+     - A background loop polls `XInputGetState` for controllers 0–3 every 5 s.
+     - Any button held or changed, trigger pressed, or stick pushed past Microsoft's recommended deadzone counts as input. Stick drift inside the deadzone is ignored.
+     - Empty slots are re-checked only once a minute, because probing an unplugged slot is slow.
+     - If `xinput1_4.dll` is missing, the agent skips controllers.
 3. **Shutdown:** a hidden top-level window receives `WM_QUERYENDSESSION` / `WM_ENDSESSION` and sends a `shutdown` event with a 2 s timeout.
+   - It reuses the already-open HTTPS connection, so there's no new TLS handshake while Windows is shutting down.
+   - Console shutdown handlers (`SetConsoleCtrlHandler`) are not an option: Windows doesn't deliver shutdown signals to programs that have a window.
+   - If the message is lost anyway, silence still marks the PC Off within the timeout.
    - It must be a top-level window: message-only windows do not receive these broadcasts.
 4. **Server reply:** every response carries `{"interval": 60, "enabled": true}`.
    - The agent accepts an interval only between 30 and 3600 s.
@@ -169,6 +177,7 @@ Settings (single row, editable in admin)
   offline_timeout_s     = 180
   heartbeat_interval_s  = 60
   agents_enabled        = true
+  allow_new_pcs         = false
 ```
 
 Live status fields sit directly on `PC`, so there's no separate status table. Future modules (`Booking`, `Session`, `Payment`) will reference `PC`.
@@ -211,7 +220,9 @@ Rules that apply to both:
   - hostname not matching `^[A-Za-z0-9-]{1,32}$`
   - unknown `event`
   - `idle_s` outside 0 to 10⁷
-- **Auto-registers** an unknown hostname as a new `PC` (label defaults to the hostname and can be renamed in admin), up to a hard cap of 50 PCs.
+- **Unknown hostnames are rejected with `403`** unless **Allow new PCs** (`allow_new_pcs`) is ticked in admin. When it is ticked, the PC is auto-registered (label defaults to the hostname and can be renamed in admin), up to a hard cap of 50 PCs.
+  - Tick it during setup, so the real PCs register themselves on their first boot. Untick it afterwards.
+  - Purpose: someone holding a leaked token can't fill the list with fake PCs and lock out real ones.
 - Calls `settle`, writes the `StateChange` rows and live fields in one database transaction, and returns `{"interval", "enabled"}` from `Settings`.
 - `shutdown` therefore shows as **Off immediately**.
 
@@ -222,7 +233,9 @@ Rules that apply to both:
   - the **state written as text** as well as a colour (readable by colour-blind staff)
   - how long it has been in that state ("Idle 14 min", "Off since 18:02")
 - Summary line at the top: `In use 21 · Idle 3 · Off 6`, plus the outage banner when relevant.
-- Refreshes with `<meta http-equiv="refresh" content="10">`. No JavaScript framework and no websockets.
+- Refreshes every 10 s with about 10 lines of plain JavaScript: it fetches the page and swaps only the summary, banner and tile grid, so there's no flash or scroll jump.
+  - Without JavaScript, `<noscript><meta http-equiv="refresh" content="10"></noscript>` reloads the whole page instead.
+  - No JavaScript framework, no HTMX, no websockets.
 - Hosted on `app.<domain>`. It can additionally be put behind Cloudflare Access (free for up to 50 users).
 - Heartbeats use the separate host `status.<domain>`, which is **not** behind Access and is protected by the agent token instead.
 
@@ -311,6 +324,7 @@ Rules that apply to both:
 | Power cut / hard power-off → **Off** | ≤ 3 min 10 s (timeout + one refresh) |
 | Last input → **Idle** | ≤ threshold + 10 s (one dashboard refresh) |
 | Input resumes → **In Use** | ≤ 70 s (one heartbeat + one refresh) |
+| Playing on a controller only (no keyboard/mouse) | Stays **In Use** |
 | Café internet down | Outage banner shown, with no false mass "Off" |
 
 **Operations**
@@ -326,7 +340,7 @@ Rules that apply to both:
 | `compute_state` | Django unit tests covering every rule and boundary (exactly at the threshold, at the timeout, shutdown taking priority) |
 | Heartbeat view | Tests for bad token → 401, malformed body → 400, auto-register, the 50-PC cap, shutdown → Off immediately, and the reply carrying interval/enabled |
 | `settle` | Table tests for every transition sequence: in use → idle → in use between heartbeats, silence → off → boot, shutdown → boot, threshold exactly reached; each transition written once, with its exact time |
-| Agent | Go unit test for the idle calculation, including counter wrap. Everything else is checked by the Phase 2 benchmark on real hardware. |
+| Agent | Go unit tests for the idle calculation (including counter wrap), the controller deadzone and slot re-check rules, and the HTTP exchange. Everything else is checked by the Phase 2 benchmark on real hardware. |
 | End-to-end | `tools/simulate_pcs.py` (30 virtual PCs) against the deployed stack |
 
 ## 11. Repository layout
@@ -369,7 +383,7 @@ Future milestones add Django apps next to `status/` (`booking/`, `payments/`, `a
 | PC logs off without shutting down → shows Off while powered on | Rare in auto-logon cafés; accepted for Milestone 1. Verify assumption 1. |
 | Oracle changes its free-tier terms or reclaims the VM | Pay-As-You-Go conversion, budget alert, nightly off-site backups. The Docker stack moves to any host in under an hour. |
 | Café internet outage | Outage banner and a gap in history. PC gaming itself is unaffected. |
-| Agent token extracted from the image | It only allows fake status data. Strict validation, rate limit, 50-PC cap, rotate if abused. |
+| Agent token extracted from the image | It only allows fake status data for existing PCs. New PCs are refused while "Allow new PCs" is off. Strict validation, rate limit, rotate if abused. |
 | Idle → In Use shows up to ~70 s late | Acceptable for a status board. If needed later, the agent can check input locally every 5 s and send an early heartbeat. |
 
 ## 14. Path to the full MIS (indicative)

@@ -16,19 +16,21 @@
 ## Global Constraints
 
 - Agent: Go, standard library only, single `.exe` for Windows amd64. No hooks, no process scanning, no disk writes, background mode (spec §2, §5).
+- Agent idle time = time since the latest keyboard, mouse **or XInput controller** input. Controllers are polled every 5 s; empty slots once a minute; Microsoft deadzones 7849 (left stick), 8689 (right stick), 30 (triggers) (spec §5.1).
+- Shutdown is detected with a hidden top-level window (`WM_ENDSESSION`), not `SetConsoleCtrlHandler`. The shutdown message reuses the open connection, with a 2 s timeout (spec §5.1).
 - Agent budget: CPU ≤ 0.1% of one core; RAM ≤ 15 MB private working set; 0 bytes of disk writes after startup; ≤ 2 KB/min of network (spec §5.3).
 - Heartbeat every 60 s by default. The agent clamps the server's interval to 30–3600 s. `"enabled": false` makes the agent exit until the next boot (spec §5.1).
-- `POST /api/v1/heartbeat` with `Authorization: Bearer <token>`. Body ≤ 1 KB; hostname `^[A-Za-z0-9-]{1,32}$`; event ∈ `boot|heartbeat|shutdown`; `idle_s` 0–10⁷; at most 50 PCs; token compared in constant time (spec §6.3).
-- Defaults: `idle_threshold_s=600`, `offline_timeout_s=180`, `heartbeat_interval_s=60`, `agents_enabled=True` (spec §6.1).
+- `POST /api/v1/heartbeat` with `Authorization: Bearer <token>`. Body ≤ 1 KB; hostname `^[A-Za-z0-9-]{1,32}$`; event ∈ `boot|heartbeat|shutdown`; `idle_s` 0–10⁷; at most 50 PCs; token compared in constant time. Unknown hostnames get 403 unless `allow_new_pcs` is ticked (spec §6.3).
+- Defaults: `idle_threshold_s=600`, `offline_timeout_s=180`, `heartbeat_interval_s=60`, `agents_enabled=True`, `allow_new_pcs=False` (spec §6.1).
 - Only the server clock is used. No background jobs (spec §6.2).
 - Python 3.12+, Django 5.2 LTS, PostgreSQL 17, Docker Compose (spec §4).
-- Dashboard: state shown as text and colour; `<meta http-equiv="refresh" content="10">`; login required (spec §6.4).
+- Dashboard: state shown as text and colour; refreshed every 10 s by a small plain-JavaScript fetch that swaps only the summary, banner and grid, with `<noscript><meta http-equiv="refresh" content="10"></noscript>` as the fallback; no HTMX or other JavaScript library; login required (spec §6.4).
 - Secrets live only in `deploy/.env` and never in git (spec §6.5).
 
 ## Review Focus
 
 1. **The same PC reports `pc07` one time and `PC07` the next** (Windows names are case-insensitive). It must stay one PC, not two. Pinned by Task 5: `test_hostname_is_case_insensitive`.
-2. **`idle_s` arrives as `true`, `5.0` or `"5"`**. It must be rejected with 400, not stored. Python treats `True` as an int, which is the trap. Pinned by Task 5: `test_malformed_heartbeats_are_400` (cases "idle as bool/float/string").
+2. **A player uses only a controller** (FIFA, Rocket League). Windows' input counter ignores controllers, so the PC must still read In Use. Equally, stick drift on a controller nobody is touching must not keep it In Use forever. Pinned by Task 7: `TestPadActive`, `TestGamepadsTrackInput`, `TestIdleNowUsesControllerInput`.
 3. **Admin lowers the idle threshold while PCs are running.** The history must never record a change dated before the PC's last heartbeat. Pinned by Task 3: `test_threshold_lowered_never_backdates_before_last_heartbeat`.
 4. **Owner logs in on the phone through the `https://….trycloudflare.com` link.** Login must not fail with a CSRF 403. Pinned by Task 6: `test_login_through_quick_tunnel_passes_csrf`.
 5. **`AGENT_TOKEN_SHA256` left empty in `.env`.** Every heartbeat must be rejected (fail closed), never accepted. Pinned by Task 5: `test_empty_configured_token_rejects_everything`.
@@ -675,7 +677,7 @@ git commit -m "feat: settle writes state history with exact times"
 **Interfaces:**
 - Consumes: `Last`, `OFF`, `IN_USE`, `IDLE` from `status.state`.
 - Produces:
-  - `CafeSettings.load() -> CafeSettings`, a singleton (pk=1) with the fields `idle_threshold_s`, `offline_timeout_s`, `heartbeat_interval_s` and `agents_enabled`.
+  - `CafeSettings.load() -> CafeSettings`, a singleton (pk=1) with the fields `idle_threshold_s`, `offline_timeout_s`, `heartbeat_interval_s`, `agents_enabled` and `allow_new_pcs`.
   - `PC`, with the fields `hostname` (unique), `label`, `mac`, `is_active`, `last_seen_at`, `last_event`, `idle_s_at_last_seen`, `boot_id`, `agent_version`, `state`, `state_since` and `created_at`.
   - `PC.STATES`: a list of `(value, label)` pairs.
   - `PC.last() -> Last`.
@@ -699,8 +701,9 @@ class CafeSettingsTests(TestCase):
         self.assertEqual(first.pk, second.pk)
         self.assertEqual(CafeSettings.objects.count(), 1)
         self.assertEqual(
-            (first.idle_threshold_s, first.offline_timeout_s, first.heartbeat_interval_s, first.agents_enabled),
-            (600, 180, 60, True),
+            (first.idle_threshold_s, first.offline_timeout_s, first.heartbeat_interval_s,
+             first.agents_enabled, first.allow_new_pcs),
+            (600, 180, 60, True, False),
         )
 
     def test_timeout_must_cover_two_heartbeats(self):
@@ -750,6 +753,10 @@ class CafeSettings(models.Model):
     )
     agents_enabled = models.BooleanField(
         default=True, help_text="Untick to make every agent exit at its next heartbeat (remote off switch)."
+    )
+    allow_new_pcs = models.BooleanField(
+        default=False,
+        help_text="Tick while setting up so new PCs can register themselves with their first heartbeat; untick afterwards.",
     )
 
     class Meta:
@@ -890,7 +897,7 @@ git commit -m "feat: CafeSettings, PC and StateChange models with admin"
   - `settings.AGENT_TOKEN_SHA256`.
 - Produces: `POST /api/v1/heartbeat` (URL name `heartbeat`).
   - Returns 200 with `{"interval": int, "enabled": bool}`.
-  - Returns 401 when the token is missing or wrong, 400 when the body is malformed, 403 once the 50-PC cap is reached, and 405 for anything other than POST.
+  - Returns 401 when the token is missing or wrong, 400 when the body is malformed, 403 for an unknown hostname while `allow_new_pcs` is off or once the 50-PC cap is reached, and 405 for anything other than POST.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -916,6 +923,9 @@ def body(**fields):
 
 @override_settings(AGENT_TOKEN_SHA256=hashlib.sha256(TOKEN.encode()).hexdigest())
 class HeartbeatTests(TestCase):
+    def setUp(self):
+        CafeSettings.objects.create(pk=1, allow_new_pcs=True)
+
     def post(self, raw=None, auth=f"Bearer {TOKEN}", **fields):
         headers = {"Authorization": auth} if auth else {}
         return self.client.post(
@@ -989,6 +999,13 @@ class HeartbeatTests(TestCase):
             list(pc.state_changes.order_by("at").values_list("from_state", "to_state")),
             [("off", "in_use"), ("in_use", "off")],
         )
+
+    def test_unknown_pc_refused_while_new_pcs_not_allowed(self):
+        PC.objects.create(hostname="PC01", label="PC01")
+        CafeSettings.objects.filter(pk=1).update(allow_new_pcs=False)
+        self.assertEqual(self.post(pc="PC07").status_code, 403)
+        self.assertFalse(PC.objects.filter(hostname="PC07").exists())
+        self.assertEqual(self.post(pc="PC01").status_code, 200)  # known PCs still report
 
     def test_pc_cap(self):
         PC.objects.bulk_create(PC(hostname=f"X{i}") for i in range(50))
@@ -1092,6 +1109,8 @@ def heartbeat(request):
         cafe = CafeSettings.load()
         pc = PC.objects.select_for_update().filter(hostname=hb["pc"]).first()
         if pc is None:
+            if not cafe.allow_new_pcs:
+                return JsonResponse({"error": "unknown pc"}, status=403)
             if PC.objects.count() >= MAX_PCS:
                 return JsonResponse({"error": "pc limit reached"}, status=403)
             pc = PC.objects.create(hostname=hb["pc"], label=hb["pc"])
@@ -1120,7 +1139,7 @@ urlpatterns = [
 - [ ] **Step 4: Run all the tests and confirm they pass**
 
 Run: `docker compose run --rm web python manage.py test status`
-Expected: `Ran 39 tests` … `OK`.
+Expected: `Ran 40 tests` … `OK`.
 
 - [ ] **Step 5: Commit**
 
@@ -1188,7 +1207,9 @@ class DashboardTests(TestCase):
         self.assertContains(response, '<section class="tile idle">')
         self.assertContains(response, "PC03")
         self.assertNotContains(response, "PC04")
-        self.assertContains(response, '<meta http-equiv="refresh" content="10">')
+        self.assertContains(response, '<meta http-equiv="refresh" content="10">')  # inside <noscript>
+        for element_id in ['id="summary"', 'id="banner-slot"', 'id="grid"']:  # swapped by the refresh script
+            self.assertContains(response, element_id)
         self.assertNotContains(response, "No data from café")
 
     def test_outage_banner_when_cafe_goes_silent(self):
@@ -1294,7 +1315,7 @@ urlpatterns = [
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="10">
+<noscript><meta http-equiv="refresh" content="10"></noscript>
 <title>Café PCs</title>
 <style>
   body { font-family: system-ui, sans-serif; margin: 1rem; background: #f6f6f6; color: #111; }
@@ -1314,13 +1335,15 @@ urlpatterns = [
 <body>
 <header>
   <h1>Café PCs</h1>
-  <p>In use {{ counts.in_use }} · Idle {{ counts.idle }} · Off {{ counts.off }}</p>
+  <p id="summary">In use {{ counts.in_use }} · Idle {{ counts.idle }} · Off {{ counts.off }}</p>
   <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
 </header>
+<div id="banner-slot">
 {% if outage_minutes is not None %}
 <p class="banner" role="alert">No data from café for {{ outage_minutes }} min — internet may be down; statuses may be stale.</p>
 {% endif %}
-<main class="grid">
+</div>
+<main class="grid" id="grid">
 {% for t in tiles %}
   <section class="tile {{ t.state }}">
     <h2>{{ t.pc }}</h2>
@@ -1331,6 +1354,19 @@ urlpatterns = [
   <p>No PCs have reported yet.</p>
 {% endfor %}
 </main>
+<script>
+// Swap in fresh tiles every 10 s without reloading the page (no flash, no scroll jump).
+setInterval(async () => {
+  try {
+    const response = await fetch(location.href, { cache: "no-store" });
+    if (!response.ok || response.redirected) { location.reload(); return; }  // e.g. logged out
+    const fresh = new DOMParser().parseFromString(await response.text(), "text/html");
+    for (const id of ["summary", "banner-slot", "grid"]) {
+      document.getElementById(id).replaceWith(fresh.getElementById(id));
+    }
+  } catch (error) { /* network blip: keep showing the last view */ }
+}, 10000);
+</script>
 </body>
 </html>
 ```
@@ -1360,7 +1396,7 @@ urlpatterns = [
 - [ ] **Step 5: Run all the tests and confirm they pass**
 
 Run: `docker compose run --rm web python manage.py test status`
-Expected: `Ran 44 tests` … `OK`.
+Expected: `Ran 45 tests` … `OK`.
 
 - [ ] **Step 6: Look at it in a browser**
 
@@ -1403,6 +1439,7 @@ Expected: `go: creating new go.mod: module cafe-agent`.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"math"
 	"net/http"
@@ -1439,6 +1476,71 @@ func TestClampInterval(t *testing.T) {
 	}
 }
 
+func TestPadActive(t *testing.T) {
+	cases := []struct {
+		name string
+		s    padState
+		want bool
+	}{
+		{"resting", padState{}, false},
+		{"stick drift inside deadzone", padState{LX: 7000, LY: -7000, RX: 8000, RY: -8000}, false},
+		{"light trigger noise", padState{LeftTrigger: 30}, false},
+		{"button held", padState{Buttons: 0x1000}, true},
+		{"left stick pushed", padState{LX: 7850}, true},
+		{"right stick pushed fully left", padState{RX: math.MinInt16}, true},
+		{"trigger pressed", padState{RightTrigger: 31}, true},
+	}
+	for _, c := range cases {
+		if got := c.s.active(); got != c.want {
+			t.Errorf("%s: active() = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+func TestGamepadsTrackInput(t *testing.T) {
+	t0 := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	var g gamepads
+	if _, ok := g.idleSince(t0); ok {
+		t.Fatal("no controller input yet")
+	}
+	g.observe(0, t0, padState{}, true) // plugged in, resting
+	if _, ok := g.idleSince(t0); ok {
+		t.Fatal("a resting controller is not input")
+	}
+	g.observe(0, t0.Add(5*time.Second), padState{Buttons: 1}, true) // pressed
+	g.observe(0, t0.Add(10*time.Second), padState{}, true)          // released: a change counts too
+	if s, ok := g.idleSince(t0.Add(70 * time.Second)); !ok || s != 60 {
+		t.Errorf("idleSince = %d, %v; want 60, true", s, ok)
+	}
+}
+
+func TestEmptySlotsProbedOncePerMinute(t *testing.T) {
+	t0 := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	var g gamepads
+	if !g.due(1, t0) {
+		t.Fatal("a never-probed slot must be due")
+	}
+	g.observe(1, t0, padState{}, false) // nothing plugged in
+	if g.due(1, t0.Add(59*time.Second)) {
+		t.Error("empty slot re-probed too soon")
+	}
+	if !g.due(1, t0.Add(time.Minute)) {
+		t.Error("empty slot not re-probed after a minute")
+	}
+	g.observe(1, t0.Add(time.Minute), padState{}, true) // plugged in
+	if !g.due(1, t0.Add(time.Minute+5*time.Second)) {
+		t.Error("a connected slot must be polled every time")
+	}
+}
+
+func TestIdleNowUsesControllerInput(t *testing.T) {
+	g := &gamepads{}
+	g.observe(0, time.Now().Add(-3*time.Second), padState{Buttons: 1}, true)
+	if idle := (&agent{pads: g}).idleNow(); idle > 3 {
+		t.Errorf("idleNow() = %d, want <= 3 right after controller input", idle)
+	}
+}
+
 func TestSendPostsHeartbeatAndReadsReply(t *testing.T) {
 	var got payload
 	var auth string
@@ -1449,8 +1551,9 @@ func TestSendPostsHeartbeatAndReadsReply(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	a := &agent{url: srv.URL, token: "secret", base: payload{PC: "PC07", BootID: "b1", AgentVersion: "test"}}
-	r, err := a.send(srv.Client(), "boot")
+	a := &agent{url: srv.URL, token: "secret", client: srv.Client(),
+		base: payload{PC: "PC07", BootID: "b1", AgentVersion: "test"}}
+	r, err := a.send(context.Background(), "boot")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1465,7 +1568,7 @@ func TestSendPostsHeartbeatAndReadsReply(t *testing.T) {
 func TestSendDefaultsMissingReplyFields(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`{}`)) }))
 	defer srv.Close()
-	r, err := (&agent{url: srv.URL}).send(srv.Client(), "heartbeat")
+	r, err := (&agent{url: srv.URL, client: srv.Client()}).send(context.Background(), "heartbeat")
 	if err != nil || r.Interval != 60 || !r.Enabled {
 		t.Errorf("reply = %+v, err = %v; want interval 60, enabled true", r, err)
 	}
@@ -1476,7 +1579,7 @@ func TestSendTreatsNon200AsError(t *testing.T) {
 		http.Error(w, "no", http.StatusUnauthorized)
 	}))
 	defer srv.Close()
-	if _, err := (&agent{url: srv.URL}).send(srv.Client(), "heartbeat"); err == nil {
+	if _, err := (&agent{url: srv.URL, client: srv.Client()}).send(context.Background(), "heartbeat"); err == nil {
 		t.Fatal("want an error for a 401 reply")
 	}
 }
@@ -1485,20 +1588,21 @@ func TestSendTreatsNon200AsError(t *testing.T) {
 - [ ] **Step 3: Run them and confirm they fail**
 
 Run: `go test ./...`
-Expected: a build failure: `undefined: idleSeconds`, `undefined: agent` and similar.
+Expected: a build failure: `undefined: idleSeconds`, `undefined: padState`, `undefined: agent` and similar.
 
 - [ ] **Step 4: Implement**
 
 `agent/main.go`:
 ```go
-// Command cafe-agent reports "seconds since last keyboard/mouse input" to the café
-// status server: a boot event, a heartbeat every interval, and a shutdown event
-// (first_milestone.md §5). Report-only: no hooks, no disk writes, and it runs in
+// Command cafe-agent reports "seconds since last keyboard, mouse or controller input"
+// to the café status server: a boot event, a heartbeat every interval, and a shutdown
+// event (first_milestone.md §5). Report-only: no hooks, no disk writes, and it runs in
 // Windows background mode so games keep the CPU, disk and memory.
 package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -1511,6 +1615,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 	"unsafe"
@@ -1528,6 +1633,7 @@ var (
 var (
 	user32   = syscall.NewLazyDLL("user32.dll")
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
+	xinput   = syscall.NewLazyDLL("xinput1_4.dll")
 
 	procGetLastInputInfo  = user32.NewProc("GetLastInputInfo")
 	procRegisterClassExW  = user32.NewProc("RegisterClassExW")
@@ -1540,12 +1646,18 @@ var (
 	procGetCurrentProcess = kernel32.NewProc("GetCurrentProcess")
 	procSetPriorityClass  = kernel32.NewProc("SetPriorityClass")
 	procGetModuleHandleW  = kernel32.NewProc("GetModuleHandleW")
+	procXInputGetState    = xinput.NewProc("XInputGetState")
 )
 
 const (
 	processModeBackgroundBegin = 0x00100000 // low CPU, I/O and memory priority
 	wmQueryEndSession          = 0x0011
 	wmEndSession               = 0x0016
+
+	// Deadzones recommended by Microsoft (XInput.h); stick drift stays inside them.
+	leftStickDeadzone  = 7849
+	rightStickDeadzone = 8689
+	triggerThreshold   = 30
 )
 
 type payload struct {
@@ -1565,7 +1677,9 @@ type reply struct {
 
 type agent struct {
 	url, token string
-	base       payload // the fields that never change while running
+	client     *http.Client
+	pads       *gamepads // nil when XInput isn't available
+	base       payload   // the fields that never change while running
 }
 
 // idleSeconds is correct across the 49.7-day wrap of the 32-bit tick counter.
@@ -1576,11 +1690,109 @@ func clampInterval(seconds int) time.Duration {
 	return time.Duration(min(max(seconds, 30), 3600)) * time.Second
 }
 
+// padState is XINPUT_GAMEPAD: the part of a controller's state that shows a person is playing.
+type padState struct {
+	Buttons                   uint16
+	LeftTrigger, RightTrigger uint8
+	LX, LY, RX, RY            int16
+}
+
+func outside(x, y int16, deadzone int32) bool {
+	ax, ay := int32(x), int32(y)
+	return ax > deadzone || ax < -deadzone || ay > deadzone || ay < -deadzone
+}
+
+// active: a button held, a trigger pressed, or a stick pushed past its deadzone.
+func (s padState) active() bool {
+	return s.Buttons != 0 || s.LeftTrigger > triggerThreshold || s.RightTrigger > triggerThreshold ||
+		outside(s.LX, s.LY, leftStickDeadzone) || outside(s.RX, s.RY, rightStickDeadzone)
+}
+
+// gamepads remembers when a controller was last used. Windows' input counter ignores
+// XInput controllers, so without this a controller-only player would look Idle.
+// Polled from one goroutine and read from another, hence the mutex.
+type gamepads struct {
+	mu        sync.Mutex
+	prev      [4]padState
+	connected [4]bool
+	nextProbe [4]time.Time
+	lastInput time.Time
+}
+
+// due reports whether slot i should be polled now: connected slots every time,
+// empty slots once a minute (probing an unplugged slot is slow).
+func (g *gamepads) due(i int, now time.Time) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.connected[i] || !now.Before(g.nextProbe[i])
+}
+
+// observe records one poll of slot i; ok is false when nothing is plugged in.
+func (g *gamepads) observe(i int, now time.Time, s padState, ok bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if !ok {
+		g.connected[i], g.nextProbe[i] = false, now.Add(time.Minute)
+		return
+	}
+	if s.active() || (g.connected[i] && s.Buttons != g.prev[i].Buttons) {
+		g.lastInput = now
+	}
+	g.connected[i], g.prev[i] = true, s
+}
+
+// idleSince is whole seconds since the last controller input, if there was any.
+func (g *gamepads) idleSince(now time.Time) (uint32, bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.lastInput.IsZero() {
+		return 0, false
+	}
+	return uint32(now.Sub(g.lastInput) / time.Second), true
+}
+
+// readPad polls controller slot i (0-3) through XInputGetState.
+func readPad(i int) (padState, bool) {
+	var st struct { // XINPUT_STATE
+		packet uint32
+		pad    padState
+	}
+	r, _, _ := procXInputGetState.Call(uintptr(i), uintptr(unsafe.Pointer(&st)))
+	return st.pad, r == 0 // 0 = ERROR_SUCCESS; anything else = not connected
+}
+
+// pollGamepads checks controllers 0-3 every 5 s, forever.
+// ponytail: sampling, so a tap released between two samples is missed; real play
+// holds sticks and triggers. Poll faster only if Phase 2 shows false Idles.
+func pollGamepads(g *gamepads) {
+	for {
+		now := time.Now()
+		for i := 0; i < 4; i++ {
+			if g.due(i, now) {
+				s, ok := readPad(i)
+				g.observe(i, now, s, ok)
+			}
+		}
+		time.Sleep(5 * time.Second)
+	}
+}
+
 func currentIdleSeconds() uint32 {
 	info := struct{ cbSize, dwTime uint32 }{cbSize: 8} // LASTINPUTINFO
 	procGetLastInputInfo.Call(uintptr(unsafe.Pointer(&info)))
 	tick, _, _ := procGetTickCount.Call()
 	return idleSeconds(uint32(tick), info.dwTime)
+}
+
+// idleNow is the time since the latest keyboard, mouse or controller input.
+func (a *agent) idleNow() uint32 {
+	idle := currentIdleSeconds()
+	if a.pads != nil {
+		if s, ok := a.pads.idleSince(time.Now()); ok && s < idle {
+			idle = s
+		}
+	}
+	return idle
 }
 
 func uptimeSeconds() uint64 {
@@ -1616,23 +1828,23 @@ func primaryMAC() string {
 	return ""
 }
 
-// send posts one event and returns the server's reply.
-func (a *agent) send(client *http.Client, event string) (reply, error) {
+// send posts one event and returns the server's reply. ctx bounds how long it may take.
+func (a *agent) send(ctx context.Context, event string) (reply, error) {
 	p := a.base
 	p.Event = event
-	p.IdleS = currentIdleSeconds()
+	p.IdleS = a.idleNow()
 	p.UptimeS = uptimeSeconds()
 	body, err := json.Marshal(p)
 	if err != nil {
 		return reply{}, err
 	}
-	req, err := http.NewRequest(http.MethodPost, a.url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.url, bytes.NewReader(body))
 	if err != nil {
 		return reply{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+a.token)
-	resp, err := client.Do(req)
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return reply{}, err
 	}
@@ -1672,6 +1884,8 @@ type winMsg struct { // MSG
 
 // watchSessionEnd runs a hidden top-level window and calls onEnd when Windows shuts
 // down or logs off. It must be top-level: message-only windows don't get WM_ENDSESSION.
+// (SetConsoleCtrlHandler is no alternative: programs with a window never receive
+// console shutdown signals.)
 func watchSessionEnd(onEnd func()) {
 	runtime.LockOSThread() // a window's messages arrive on the thread that created it
 	className, _ := syscall.UTF16PtrFromString("CafeAgentWindow")
@@ -1710,21 +1924,32 @@ func main() {
 
 	enterBackgroundMode()
 	host, _ := os.Hostname()
-	a := &agent{url: *url, token: *tok, base: payload{
+	a := &agent{url: *url, token: *tok, client: &http.Client{}, base: payload{
 		PC: host, MAC: primaryMAC(), BootID: newBootID(), AgentVersion: version,
 	}}
+	if procXInputGetState.Find() == nil { // xinput1_4.dll ships with Windows 8 and later
+		a.pads = &gamepads{}
+		go pollGamepads(a.pads)
+	}
 
-	shutdownClient := &http.Client{Timeout: 2 * time.Second}
-	go watchSessionEnd(func() { a.send(shutdownClient, "shutdown") })
+	// The shutdown message reuses a.client's open connection: no new TLS handshake
+	// while Windows is shutting down. If it is lost, silence still marks the PC Off.
+	go watchSessionEnd(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		a.send(ctx, "shutdown")
+	})
 
 	// Spread the first report so 30 PCs switched on together don't arrive in the same second.
 	time.Sleep(time.Duration(mrand.IntN(31)) * time.Second)
 
-	client := &http.Client{Timeout: 5 * time.Second}
 	event := "boot"
 	for {
 		interval := time.Minute
-		if r, err := a.send(client, event); err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		r, err := a.send(ctx, event)
+		cancel()
+		if err == nil {
 			if !r.Enabled {
 				return // remote off switch: stay quiet until the next boot
 			}
@@ -1744,7 +1969,7 @@ Expected: `ok  	cafe-agent`, with no `go vet` output.
 - [ ] **Step 6: Build the exe**
 
 Run: `go build -trimpath -ldflags "-H windowsgui -s -w -X main.version=0.1.0" -o cafe-agent.exe .`
-Expected: `agent/cafe-agent.exe` exists. Check with `ls -la cafe-agent.exe`; it should be roughly 5–8 MB.
+Expected: `agent/cafe-agent.exe` exists. Check with `ls -la cafe-agent.exe`; it should be roughly 6–8 MB.
 
 - [ ] **Step 7: Ignore built exes and commit**
 
@@ -1870,6 +2095,7 @@ Run on the laptop:
 python -c "import secrets, hashlib; t = secrets.token_urlsafe(32); print('TOKEN (give to agents):', t); print('AGENT_TOKEN_SHA256=' + hashlib.sha256(t.encode()).hexdigest())"
 ```
 Paste the `AGENT_TOKEN_SHA256=…` line into `deploy/.env`. Keep the TOKEN somewhere safe, such as a password manager; don't put it in git. Then run, from `deploy/`: `docker compose up -d`. Expected: `web` is recreated (`Recreated`/`Started`).
+Then go to admin → Café settings and tick **Allow new PCs**, so the simulated and real PCs can register themselves. Without it, every new hostname gets 403.
 
 - [ ] **Step 3: Smoke-test against the stack**
 
