@@ -55,8 +55,7 @@ Show the live status of all 30 diskless gaming PCs on a simple web dashboard:
 │     (browser)                 │                 │  Docker Compose:                   │
 └───────────────────────────────┘                 │   ├ cloudflared   (tunnel client)  │
                                                   │   ├ web    Django + Gunicorn       │
-                                                  │   ├ sweeper  (state every 30 s)    │
-                                                  │   └ db     PostgreSQL              │
+                                                                                                    │   └ db     PostgreSQL              │
                                                   └────────────────────────────────────┘
 ```
 
@@ -65,10 +64,9 @@ Show the live status of all 30 diskless gaming PCs on a simple web dashboard:
 | # | Component | Runs on | Single responsibility |
 |---|---|---|---|
 | 1 | `cafe-agent.exe` | Each gaming PC | Report "seconds since last input" once a minute, plus boot and shutdown events |
-| 2 | Heartbeat API | Cloud (Django view) | Authenticate, validate and store each heartbeat; reply with the current interval and on/off switch |
-| 3 | Sweeper | Cloud (Django management command) | Every 30 s, compute each PC's state and record state changes |
-| 4 | Dashboard | Cloud (Django page) | Show 30 tiles plus summary counts; refresh every 10 s |
-| 5 | Admin | Cloud (Django admin) | PC list, settings (idle threshold, etc.), staff accounts |
+| 2 | Heartbeat API | Cloud (Django view) | Authenticate, validate and store each heartbeat, record state changes with exact times; reply with the current interval and on/off switch |
+| 3 | Dashboard | Cloud (Django page) | Show 30 tiles plus summary counts; refresh every 10 s |
+| 4 | Admin | Cloud (Django admin) | PC list, settings (idle threshold, etc.), staff accounts |
 
 ## 4. Tech stack
 
@@ -177,17 +175,32 @@ Live status fields sit directly on `PC`, so there's no separate status table. Fu
 
 ### 6.2 State rules
 
-All rules live in **one pure function**, `compute_state(pc, now, settings)`. Both the heartbeat view and the sweeper call it, so the logic exists in exactly one place.
+There is **no background job**. Every state follows from the last heartbeat plus the clock, so it is computed exactly when needed. The moment a PC *will* go Idle or Off is known in advance:
 
 ```
-if pc.last_event == "shutdown" or now − pc.last_seen_at > offline_timeout_s:  → off
-elif pc.idle_s_at_last_seen + (now − pc.last_seen_at) ≥ idle_threshold_s:     → idle
-else:                                                                         → in_use
+idle_at = last_seen_at − idle_s_at_last_seen + idle_threshold_s
+off_at  = last_seen_at                       if last_event == "shutdown"
+          last_seen_at + offline_timeout_s   otherwise
 ```
 
+All rules live in `status/state.py` as **two pure functions**, which are easy to unit-test:
+
+1. **`compute_state(pc, now, settings)`** gives the live state. The dashboard calls it on every page load, and it is read-only.
+   ```
+   if now ≥ off_at:     → off
+   elif now ≥ idle_at:  → idle
+   else:                → in_use
+   ```
+2. **`settle(pc, heartbeat, now, settings)`** gives the list of `(state, at)` transitions since the previous heartbeat, with **exact timestamps**. The heartbeat view calls it, then saves the rows to `StateChange` and the new live fields to `PC`.
+   - The new heartbeat says when the last input happened (`now − idle_s`), so the history stays truthful.
+   - Example: a PC that went Idle at `idle_at` and was picked up again at `now − idle_s` gets both rows.
+   - Example: a PC that went silent and later boots gets `off` at `off_at`, then `in_use` at boot.
+
+Rules that apply to both:
 - Only the **server clock** is used. PC clocks are never trusted.
-- **Known edge case:** the sweeper assumes there has been no input since the last heartbeat. A PC whose user touches the keyboard just before the threshold can briefly show **Idle** until its next heartbeat arrives (≤ 60 s). This is accepted for Milestone 1.
-- A helper `apply_state(pc, now)` saves the new state and writes a `StateChange` row whenever the state differs from the stored one.
+- History accuracy is limited by the heartbeat interval: of all the input between two heartbeats, the server only sees the last one.
+- **Known edge case (dashboard only):** `compute_state` assumes there has been no input since the last heartbeat. A PC whose user touches the keyboard just before the threshold can briefly show **Idle** until its next heartbeat arrives (≤ 60 s). The history is not affected, because `settle` corrects it. This is accepted for Milestone 1.
+- **Silent PCs:** the `off` row for a PC that goes silent is written when that PC next sends a heartbeat. Until then, the dashboard already shows it as Off. Milestone 4 analytics will settle any open periods before running reports.
 - **Café-wide outage:** if no PC has reported for longer than `offline_timeout_s`, the dashboard shows a banner: *"No data from café for N min — internet may be down; statuses may be stale."* This way an internet outage isn't mistaken for everyone switching off.
 
 ### 6.3 Heartbeat endpoint
@@ -199,15 +212,10 @@ else:                                                                         �
   - unknown `event`
   - `idle_s` outside 0 to 10⁷
 - **Auto-registers** an unknown hostname as a new `PC` (label defaults to the hostname and can be renamed in admin), up to a hard cap of 50 PCs.
-- Updates the live fields, calls `apply_state`, and returns `{"interval", "enabled"}` from `Settings`.
-- `shutdown` therefore shows as **Off immediately**. There's no wait for the sweeper.
+- Calls `settle`, writes the `StateChange` rows and live fields in one database transaction, and returns `{"interval", "enabled"}` from `Settings`.
+- `shutdown` therefore shows as **Off immediately**.
 
-### 6.4 Sweeper
-
-- Runs as its own container: `python manage.py sweep` in a loop every 30 s.
-- Applies `apply_state` to every active PC. This catches the transitions that arrive with no message: going **Idle**, and **Off by silence**.
-
-### 6.5 Dashboard
+### 6.4 Dashboard
 
 - One Django page behind a login. A grid of 30 tiles, each showing:
   - the PC label
@@ -218,7 +226,7 @@ else:                                                                         �
 - Hosted on `app.<domain>`. It can additionally be put behind Cloudflare Access (free for up to 50 users).
 - Heartbeats use the separate host `status.<domain>`, which is **not** behind Access and is protected by the agent token instead.
 
-### 6.6 Security
+### 6.5 Security
 
 - **Agent token:** one token for the whole café, compiled into the agent. Anyone who extracts it from the image can only send fake *status* data. It grants no access to the dashboard, admin or (later) payments.
   - Mitigations: strict validation, the 50-PC cap, a Cloudflare rate-limit rule on `/api/v1/heartbeat`, and token rotation through an image update.
@@ -226,7 +234,7 @@ else:                                                                         �
 - **Secrets** (Django `SECRET_KEY`, agent token hash, database password, R2 keys) live in a `.env` on the VM. Never commit them to git.
 - **Patching:** `unattended-upgrades` applies OS security patches automatically.
 
-### 6.7 Operations
+### 6.6 Operations
 
 | Task | How |
 |---|---|
@@ -253,8 +261,8 @@ else:                                                                         �
 4. Confirm assumptions 1–4 in section 1.2.
 
 ### Phase 1: Cloud side
-1. Create the VM, Docker Compose stack, Cloudflare Tunnel, Django project `mis` and app `status`.
-2. Implement the models, `compute_state`, the heartbeat view, the sweeper, the dashboard and admin.
+1. Create the Django project `mis` and app `status`, and the Docker Compose stack. Build and test them on the developer's laptop first. The Oracle VM and named Cloudflare Tunnel come after the owner demo (Phase 2b).
+2. Implement the models, `state.py` (`compute_state`, `settle`), the heartbeat view, the dashboard and admin.
 3. Test end-to-end with **`tools/simulate_pcs.py`**: 30 fake PCs going boot → in use → idle → shutdown and silent → off, sent from the developer's laptop.
 
 ### Phase 2: Agent, and a benchmark on one PC (outside café hours)
@@ -266,6 +274,12 @@ else:                                                                         �
 3. **With the agent:** run the exe by hand. On a diskless PC this goes to the write-back cache and **disappears on reboot**, so it's a no-risk test. Repeat the same measurements.
 4. Check the agent's own disk writes (Process Monitor) and its CPU and RAM (Process Explorer) against section 5.3.
 5. Launch every anti-cheat game with the agent running, and confirm there are no kicks, warnings or Windows Defender alerts.
+
+### Phase 2b: Prototype demo for the café owner (before any cloud spend)
+1. Run the stack on the developer's laptop (Docker Desktop). Expose it with a temporary Cloudflare quick tunnel (`cloudflared tunnel --url http://localhost:8000`). This needs no account and no domain.
+2. At the café, run `cafe-agent.exe` by hand on 2–3 PCs. On a diskless PC it lives in the write-back cache and disappears on reboot. Simulated PCs fill the remaining tiles.
+3. Show the owner the dashboard on their phone, with real PCs changing state, and the Phase 2 numbers showing no FPS impact.
+4. With the owner's approval, deploy properly: Oracle VM, domain, named Tunnel (Phase 1 hosting). Then continue with Phase 3.
 
 ### Phase 3: Pilot in the image (2 PCs, 3 days)
 1. **Back up the CCBoot image first.** Create a restore point or copy the image file.
@@ -294,8 +308,8 @@ else:                                                                         �
 | Event | Shows on the dashboard within |
 |---|---|
 | Normal Windows shutdown → **Off** | ≤ 15 s |
-| Power cut / hard power-off → **Off** | ≤ 3.5 min |
-| Last input → **Idle** | ≤ threshold + 100 s (one heartbeat + one sweep + one refresh) |
+| Power cut / hard power-off → **Off** | ≤ 3 min 10 s (timeout + one refresh) |
+| Last input → **Idle** | ≤ threshold + 10 s (one dashboard refresh) |
 | Input resumes → **In Use** | ≤ 70 s (one heartbeat + one refresh) |
 | Café internet down | Outage banner shown, with no false mass "Off" |
 
@@ -311,7 +325,7 @@ else:                                                                         �
 |---|---|
 | `compute_state` | Django unit tests covering every rule and boundary (exactly at the threshold, at the timeout, shutdown taking priority) |
 | Heartbeat view | Tests for bad token → 401, malformed body → 400, auto-register, the 50-PC cap, shutdown → Off immediately, and the reply carrying interval/enabled |
-| Sweeper | Test that silence → Off, that idle time growing → Idle, and that each transition writes exactly one `StateChange` |
+| `settle` | Table tests for every transition sequence: in use → idle → in use between heartbeats, silence → off → boot, shutdown → boot, threshold exactly reached; each transition written once, with its exact time |
 | Agent | Go unit test for the idle calculation, including counter wrap. Everything else is checked by the Phase 2 benchmark on real hardware. |
 | End-to-end | `tools/simulate_pcs.py` (30 virtual PCs) against the deployed stack |
 
@@ -328,11 +342,11 @@ Gaming_MIS/
 ├── server/                    # Django — the MIS backend
 │   ├── manage.py
 │   ├── mis/                   # project: settings, urls
-│   ├── status/                # Milestone 1 app: models, state.py, views, sweep command, templates, tests
+│   ├── status/                # Milestone 1 app: models, state.py, views, templates, tests
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── deploy/
-│   ├── docker-compose.yml     # web, sweeper, db, cloudflared
+│   ├── docker-compose.yml     # web, db, cloudflared
 │   └── backup.sh              # pg_dump → R2
 └── tools/
     └── simulate_pcs.py
