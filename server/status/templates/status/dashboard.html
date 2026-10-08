@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<noscript><meta http-equiv="refresh" content="10"></noscript>
+<title>Café PCs</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 1rem; background: #f6f6f6; color: #111; }
+  header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .5rem; }
+  h1 { margin: 0; }
+  .banner { background: #fff3cd; border: 1px solid #c9a227; padding: .75rem; margin: 1rem 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .5rem; margin-top: 1rem; }
+  .tile { background: #fff; border-radius: .5rem; padding: .75rem; border-left: .5rem solid; }
+  .tile h2 { margin: 0 0 .25rem; font-size: 1.1rem; }
+  .tile p { margin: 0; }
+  .state { font-weight: 700; }
+  .in_use { border-color: #1a7f37; }
+  .idle { border-color: #c9a227; }
+  .off { border-color: #8c8c8c; color: #555; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Café PCs</h1>
+  <p id="summary">In use {{ counts.in_use }} · Idle {{ counts.idle }} · Off {{ counts.off }}</p>
+  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+</header>
+<div id="banner-slot">
+{% if outage_minutes is not None %}
+<p class="banner" role="alert">No data from café for {{ outage_minutes }} min — internet may be down; statuses may be stale.</p>
+{% endif %}
+</div>
+<main class="grid" id="grid">
+{% for t in tiles %}
+  <section class="tile {{ t.state }}">
+    <h2>{{ t.pc }}</h2>
+    <p class="state">{{ t.label }}</p>
+    {% if t.since %}<p>{% if t.state == "off" %}since {{ t.since|time:"H:i" }}{% else %}for {{ t.since|timesince:now }}{% endif %}</p>{% endif %}
+  </section>
+{% empty %}
+  <p>No PCs have reported yet.</p>
+{% endfor %}
+</main>
+<script>
+// Swap in fresh tiles every 10 s without reloading the page (no flash, no scroll jump).
+setInterval(async () => {
+  try {
+    const response = await fetch(location.href, { cache: "no-store" });
+    if (!response.ok || response.redirected) { location.reload(); return; }  // e.g. logged out
+    const fresh = new DOMParser().parseFromString(await response.text(), "text/html");
+    for (const id of ["summary", "banner-slot", "grid"]) {
+      document.getElementById(id).replaceWith(fresh.getElementById(id));
+    }
+  } catch (error) { /* network blip: keep showing the last view */ }
+}, 10000);
+</script>
+</body>
+</html>

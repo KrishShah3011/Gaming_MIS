@@ -4,14 +4,16 @@ import json
 import re
 
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .models import PC, CafeSettings, StateChange
-from .state import settle
+from .state import IDLE, IN_USE, OFF, compute_state, settle
 
 MAX_BODY_BYTES = 1024
 MAX_PCS = 50
@@ -83,3 +85,39 @@ def heartbeat(request):
         pc.mac, pc.boot_id, pc.agent_version = hb["mac"], hb["boot_id"], hb["agent_version"]
         pc.save()
     return JsonResponse({"interval": cafe.heartbeat_interval_s, "enabled": cafe.agents_enabled})
+
+
+STATE_LABELS = dict(PC.STATES)
+
+
+def _outage_minutes(pcs, now, offline_timeout_s):
+    """Minutes since the café last reported, if it looks like the internet is down (§6.2).
+
+    If the most recent report was a clean shutdown, the café simply closed: no banner.
+    """
+    seen = [pc for pc in pcs if pc.last_seen_at]
+    if not seen:
+        return None
+    latest = max(seen, key=lambda pc: pc.last_seen_at)
+    silent_s = (now - latest.last_seen_at).total_seconds()
+    if silent_s <= offline_timeout_s or latest.last_event == "shutdown":
+        return None
+    return int(silent_s // 60)
+
+
+@login_required
+def dashboard(request):
+    now = timezone.now()
+    cafe = CafeSettings.load()
+    pcs = list(PC.objects.filter(is_active=True))
+    tiles, counts = [], {IN_USE: 0, IDLE: 0, OFF: 0}
+    for pc in pcs:
+        state, since = compute_state(pc.last(), now, cafe.idle_threshold_s, cafe.offline_timeout_s)
+        counts[state] += 1
+        tiles.append({"pc": pc, "state": state, "label": STATE_LABELS[state], "since": since})
+    return render(request, "status/dashboard.html", {
+        "tiles": tiles,
+        "counts": counts,
+        "outage_minutes": _outage_minutes(pcs, now, cafe.offline_timeout_s),
+        "now": now,
+    })
