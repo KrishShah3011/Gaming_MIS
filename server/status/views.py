@@ -77,6 +77,11 @@ def heartbeat(request):
             if PC.objects.count() >= MAX_PCS:
                 return JsonResponse({"error": "pc limit reached"}, status=403)
             pc = PC.objects.create(hostname=hb["pc"], label=hb["pc"])
+        if (hb["event"] == "heartbeat" and pc.last_event == "shutdown"
+                and hb["boot_id"] and hb["boot_id"] == pc.boot_id):
+            # Same agent run, already shut down: a heartbeat sent just before the shutdown
+            # message arrived after it. Ignore it rather than flip the PC back on.
+            return JsonResponse({"interval": cafe.heartbeat_interval_s, "enabled": cafe.agents_enabled})
         changes = settle(pc.last(), hb["event"], hb["idle_s"], now, cafe.idle_threshold_s, cafe.offline_timeout_s)
         for state, at in changes:
             StateChange.objects.create(pc=pc, from_state=pc.state, to_state=state, at=at)

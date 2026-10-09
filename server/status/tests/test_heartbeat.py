@@ -95,6 +95,17 @@ class HeartbeatTests(TestCase):
             [("off", "in_use"), ("in_use", "off")],
         )
 
+    def test_heartbeat_racing_shutdown_is_ignored(self):
+        self.post(boot_id="b1")
+        self.post(event="shutdown", boot_id="b1")
+        self.assertEqual(self.post(event="heartbeat", boot_id="b1").status_code, 200)
+        pc = PC.objects.get()
+        self.assertEqual(pc.state, "off")
+        self.assertEqual(pc.state_changes.count(), 2)
+        self.post(event="heartbeat", boot_id="b2")
+        pc.refresh_from_db()
+        self.assertEqual(pc.state, "in_use")
+
     def test_unknown_pc_refused_while_new_pcs_not_allowed(self):
         PC.objects.create(hostname="PC01", label="PC01")
         CafeSettings.objects.filter(pk=1).update(allow_new_pcs=False)
