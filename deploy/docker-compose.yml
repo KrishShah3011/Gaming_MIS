@@ -9,7 +9,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mis -d mis"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -U mis -d mis"]
       interval: 5s
       retries: 10
     restart: unless-stopped
