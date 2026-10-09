@@ -53,6 +53,9 @@ class DashboardTests(TestCase):
         self.client.force_login(self.user)
         self.assertNotContains(self.client.get("/"), "No data from café")
 
+    def test_password_reset_not_exposed(self):
+        self.assertEqual(self.client.get("/accounts/password_reset/").status_code, 404)
+
     @override_settings(
         ALLOWED_HOSTS=["abc.trycloudflare.com"],
         CSRF_TRUSTED_ORIGINS=["https://*.trycloudflare.com"],
