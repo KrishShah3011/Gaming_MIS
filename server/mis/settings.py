@@ -10,7 +10,7 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").sp
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
 
 # SHA-256 hex digest of the agents' bearer token. Empty means every heartbeat is rejected.
-AGENT_TOKEN_SHA256 = os.environ.get("AGENT_TOKEN_SHA256", "")
+AGENT_TOKEN_SHA256 = os.environ.get("AGENT_TOKEN_SHA256", "").strip().lower()
 
 # cloudflared terminates HTTPS and sends X-Forwarded-Proto: https. Trusting it is safe only
 # because compose publishes web on 127.0.0.1; never publish this port beyond loopback.
