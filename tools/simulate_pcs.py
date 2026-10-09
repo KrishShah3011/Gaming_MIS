@@ -50,8 +50,8 @@ def send(url, token, pc, event):
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
-    except urllib.error.URLError as error:
-        return f"unreachable ({error.reason})"
+    except OSError as error:
+        return f"unreachable ({error})"
 
 
 def main():
