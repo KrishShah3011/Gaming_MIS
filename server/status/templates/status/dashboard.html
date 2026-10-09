@@ -49,6 +49,7 @@ setInterval(async () => {
     const response = await fetch(location.href, { cache: "no-store" });
     if (!response.ok || response.redirected) { location.reload(); return; }  // e.g. logged out
     const fresh = new DOMParser().parseFromString(await response.text(), "text/html");
+    if (!["summary", "banner-slot", "grid"].every((id) => fresh.getElementById(id))) { location.reload(); return; }
     for (const id of ["summary", "banner-slot", "grid"]) {
       document.getElementById(id).replaceWith(fresh.getElementById(id));
     }
