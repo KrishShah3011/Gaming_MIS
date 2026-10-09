@@ -12,6 +12,12 @@ CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS",
 # SHA-256 hex digest of the agents' bearer token. Empty means every heartbeat is rejected.
 AGENT_TOKEN_SHA256 = os.environ.get("AGENT_TOKEN_SHA256", "")
 
+# cloudflared terminates HTTPS and sends X-Forwarded-Proto: https. Trusting it is safe only
+# because compose publishes web on 127.0.0.1; never publish this port beyond loopback.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Browsers accept Secure cookies on http://localhost, so the same instance works locally.
+SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = os.environ.get("DJANGO_SECURE_COOKIES", "1") == "1"
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",

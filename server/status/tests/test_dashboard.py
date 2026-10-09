@@ -53,14 +53,22 @@ class DashboardTests(TestCase):
         self.client.force_login(self.user)
         self.assertNotContains(self.client.get("/"), "No data from café")
 
-    @override_settings(ALLOWED_HOSTS=["abc.trycloudflare.com"], CSRF_TRUSTED_ORIGINS=["https://*.trycloudflare.com"])
+    @override_settings(
+        ALLOWED_HOSTS=["abc.trycloudflare.com"],
+        CSRF_TRUSTED_ORIGINS=["https://*.trycloudflare.com"],
+        SESSION_COOKIE_SECURE=True,
+        CSRF_COOKIE_SECURE=True,
+        SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_PROTO", "https"),
+    )
     def test_login_through_quick_tunnel_passes_csrf(self):
         client = Client(enforce_csrf_checks=True)
-        client.get("/accounts/login/", HTTP_HOST="abc.trycloudflare.com")
+        client.get("/accounts/login/", HTTP_HOST="abc.trycloudflare.com", HTTP_X_FORWARDED_PROTO="https")
         response = client.post(
             "/accounts/login/",
             {"username": "staff", "password": "pw-123456789", "csrfmiddlewaretoken": client.cookies["csrftoken"].value},
             HTTP_HOST="abc.trycloudflare.com",
             HTTP_ORIGIN="https://abc.trycloudflare.com",
+            HTTP_X_FORWARDED_PROTO="https",
         )
         self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.cookies["sessionid"]["secure"])
