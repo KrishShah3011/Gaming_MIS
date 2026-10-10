@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic import TemplateView
 
-from . import views
+from . import views, wallet_views
 
 
 def policy(name):
@@ -10,6 +10,10 @@ def policy(name):
 
 urlpatterns = [
     path("me/phone/", views.phone, name="phone"),
+    path("me/wallet/", wallet_views.wallet, name="wallet"),
+    path("me/wallet/order", wallet_views.topup_order, name="topup_order"),
+    path("me/wallet/paid", wallet_views.topup_paid, name="topup_paid"),
+    path("payments/razorpay/webhook", wallet_views.razorpay_webhook, name="razorpay_webhook"),
     policy("terms"),
     policy("privacy"),
     policy("refunds"),
