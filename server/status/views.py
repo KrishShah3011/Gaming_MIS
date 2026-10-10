@@ -125,4 +125,5 @@ def dashboard(request):
         "counts": counts,
         "outage_minutes": _outage_minutes(pcs, now, cafe.offline_timeout_s),
         "now": now,
+        "cafe": cafe,
     })

@@ -1261,15 +1261,15 @@
       <div style="margin-top:0.5rem;">
         <div class="telemetry-row">
           <span class="key">Idle Threshold</span>
-          <span class="val">{{ cafe.idle_threshold_s|default:600 }}s ({{ cafe.idle_threshold_s|default:600|divisibleby:60|yesno:"10 min,Custom" }})</span>
+          <span class="val">{% if cafe %}{{ cafe.idle_threshold_s }}s ({{ cafe.idle_threshold_s|divisibleby:60|yesno:"10 min,Custom" }}){% else %}600s (10 min){% endif %}</span>
         </div>
         <div class="telemetry-row">
           <span class="key">Offline Timeout</span>
-          <span class="val">{{ cafe.offline_timeout_s|default:180 }}s</span>
+          <span class="val">{% if cafe %}{{ cafe.offline_timeout_s }}s{% else %}180s{% endif %}</span>
         </div>
         <div class="telemetry-row">
           <span class="key">Heartbeat Interval</span>
-          <span class="val">{{ cafe.heartbeat_interval_s|default:60 }}s</span>
+          <span class="val">{% if cafe %}{{ cafe.heartbeat_interval_s }}s{% else %}60s{% endif %}</span>
         </div>
       </div>
     </div>
@@ -1279,14 +1279,14 @@
       <div style="margin-top:0.5rem;">
         <div class="telemetry-row">
           <span class="key">Auto-Register New PCs</span>
-          <span class="val" style="color:{% if cafe.allow_new_pcs %}var(--accent){% else %}var(--text-muted){% endif %};">
-            {{ cafe.allow_new_pcs|yesno:"Enabled,Disabled" }}
+          <span class="val" style="color:{% if cafe and cafe.allow_new_pcs %}var(--accent){% else %}var(--text-muted){% endif %};">
+            {% if cafe %}{{ cafe.allow_new_pcs|yesno:"Enabled,Disabled" }}{% else %}Disabled{% endif %}
           </span>
         </div>
         <div class="telemetry-row">
           <span class="key">Agent Remote Switch</span>
-          <span class="val" style="color:{% if cafe.agents_enabled %}var(--accent){% else %}var(--danger){% endif %};">
-            {{ cafe.agents_enabled|yesno:"Running,DISABLED" }}
+          <span class="val" style="color:{% if cafe and not cafe.agents_enabled %}var(--danger){% else %}var(--accent){% endif %};">
+            {% if cafe %}{% if cafe.agents_enabled %}Running{% else %}DISABLED{% endif %}{% else %}Running{% endif %}
           </span>
         </div>
       </div>
