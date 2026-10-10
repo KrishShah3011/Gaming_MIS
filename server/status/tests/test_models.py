@@ -1,3 +1,5 @@
+from datetime import time
+
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
@@ -21,6 +23,25 @@ class CafeSettingsTests(TestCase):
         with self.assertRaises(ValidationError):
             CafeSettings(heartbeat_interval_s=120, offline_timeout_s=180).full_clean()
         CafeSettings(heartbeat_interval_s=60, offline_timeout_s=180).full_clean()  # fine
+
+
+class BookingSettingsTests(TestCase):
+    def test_booking_defaults(self):
+        cafe = CafeSettings.load()
+        self.assertEqual(
+            (cafe.hourly_rate_rupees, cafe.booking_step_min, cafe.min_booking_min, cafe.cancel_cutoff_min, cafe.advance_days),
+            (100, 30, 60, 120, 7),
+        )
+        self.assertEqual((cafe.opens_at, cafe.closes_at), (time(10), time(23)))
+        self.assertEqual(cafe.cafe_name, "Gaming Café")
+
+    def test_min_length_must_be_whole_steps(self):
+        with self.assertRaises(ValidationError):
+            CafeSettings(booking_step_min=30, min_booking_min=45).full_clean()
+        CafeSettings(booking_step_min=15, min_booking_min=45).full_clean()
+
+    def test_same_open_and_close_means_24_hours(self):
+        CafeSettings(opens_at=time(0), closes_at=time(0)).full_clean()  # allowed
 
 
 class PCTests(TestCase):

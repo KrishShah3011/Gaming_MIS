@@ -1,3 +1,5 @@
+from datetime import time
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -20,6 +22,27 @@ class CafeSettings(models.Model):
         default=False,
         help_text="Tick while setting up so new PCs can register themselves with their first heartbeat; untick afterwards.",
     )
+    # Booking (Milestone 2). Prices are whole rupees; the wallet stores paise.
+    hourly_rate_rupees = models.PositiveIntegerField(default=100, validators=[MinValueValidator(1)])
+    booking_step_min = models.PositiveSmallIntegerField(
+        default=30, choices=[(15, "15 minutes"), (30, "30 minutes")],
+        help_text="Start times and lengths move in steps of this size.",
+    )
+    min_booking_min = models.PositiveSmallIntegerField(default=60, validators=[MinValueValidator(15)])
+    cancel_cutoff_min = models.PositiveIntegerField(
+        default=120, help_text="Customers can cancel until this many minutes before the start."
+    )
+    opens_at = models.TimeField(default=time(10, 0))
+    closes_at = models.TimeField(
+        default=time(23, 0),
+        help_text="Earlier than the opening time means the café closes after midnight. Same as opening means open 24 hours.",
+    )
+    advance_days = models.PositiveSmallIntegerField(default=7, validators=[MinValueValidator(1)])
+    # Shown on the website's Contact and policy pages (Razorpay requires them).
+    cafe_name = models.CharField(max_length=80, default="Gaming Café")
+    contact_phone = models.CharField(max_length=20, blank=True)
+    contact_email = models.EmailField(blank=True)
+    address = models.TextField(blank=True)
 
     class Meta:
         verbose_name = verbose_name_plural = "café settings"
@@ -28,11 +51,15 @@ class CafeSettings(models.Model):
         return "Café settings"
 
     def clean(self):
+        errors = {}
         timeout, interval = self.offline_timeout_s, self.heartbeat_interval_s
         if None not in (timeout, interval) and timeout < 2 * interval:
-            raise ValidationError(
-                {"offline_timeout_s": "Must be at least twice the heartbeat interval, or PCs will flicker to Off."}
-            )
+            errors["offline_timeout_s"] = "Must be at least twice the heartbeat interval, or PCs will flicker to Off."
+        step, min_len = self.booking_step_min, self.min_booking_min
+        if None not in (step, min_len) and min_len % step:
+            errors["min_booking_min"] = "Must be a whole number of booking steps."
+        if errors:
+            raise ValidationError(errors)
 
     @classmethod
     def load(cls):
