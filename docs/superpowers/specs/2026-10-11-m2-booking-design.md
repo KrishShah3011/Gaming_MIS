@@ -58,12 +58,13 @@ Customers book gaming PCs on the café's website and pay from a prepaid wallet. 
 
 | Field | Default |
 |---|---|
-| `hourly_rate_paise` | 10000 (₹100) |
+| `hourly_rate_rupees` | 100 |
 | `booking_step_min` | 30 (choices: 15, 30) |
 | `min_booking_min` | 60 |
 | `cancel_cutoff_min` | 120 |
-| `opens_at`, `closes_at` | 10:00, 23:00. `closes_at` earlier than `opens_at` means the café closes after midnight. |
+| `opens_at`, `closes_at` | 10:00, 23:00. `closes_at` earlier than `opens_at` means the café closes after midnight; equal means open 24 hours. |
 | `advance_days` | 7 |
+| `cafe_name`, `contact_phone`, `contact_email`, `address` | Shown on the Contact and policy pages |
 
 **`Customer`**: `user` (one-to-one with Django `User`, created by Google sign-in; name and email come from Google), `phone` (asked once after first sign-in; Indian mobile, `^[6-9]\d{9}$`, not verified), `created_at`.
 
@@ -76,7 +77,7 @@ Customers book gaming PCs on the café's website and pay from a prepaid wallet. 
 - `customer`, `amount_paise` (signed), `kind` ∈ {`topup_online`, `topup_cash`, `bonus`, `booking`, `extension`, `refund`, `correction`}, `booking` (null), `razorpay_payment_id` (null, **unique**), `staff` (user who made a cash top-up or correction, null), `note` (required for `correction`), `at`.
 - **Balance** = sum of the customer's `amount_paise`.
 
-**`Offer`**: `name`, `pay_paise`, `bonus_paise`, `is_active`, `valid_until` (null). Applies only when a top-up's amount equals `pay_paise` exactly. The website shows it as hours at the current rate ("Pay ₹500, get 6 hrs").
+**`Offer`**: `name`, `pay_rupees`, `bonus_rupees`, `is_active`, `valid_until` (null). Applies only when a top-up's amount equals `pay_rupees` exactly. The website shows it as hours at the current rate ("Pay ₹500, get 6 hrs").
 
 **`TopUpOrder`**: `razorpay_order_id` (unique), `customer`, `amount_paise`, `bonus_paise` (snapshot of the offer at order creation, 0 if none), `offer` (null), `created_at`, `paid_at` (null).
 
@@ -86,7 +87,7 @@ Customers book gaming PCs on the café's website and pay from a prepaid wallet. 
 
 All rules live in `booking/rules.py` as pure functions taking the current time and settings, so they are easy to test. Only the server clock is used (`Asia/Kolkata`).
 
-**Price** = `hourly_rate_paise × minutes ÷ 60`, rounded half-up to the paise. A rate change applies only to new bookings and extensions.
+**Price** = `hourly_rate_rupees × 100 × minutes ÷ 60` paise, rounded half-up to the paise. A rate change applies only to new bookings and extensions.
 
 **A booking request is valid when:**
 1. Length is a whole number of steps and at least `min_booking_min`.
@@ -143,7 +144,7 @@ All rules live in `booking/rules.py` as pure functions taking the current time a
 
 **Staff dashboard** (`/staff/`, staff only):
 - Each tile adds its booking: "Rahul, until 16:00", or "Next: 14:00" when the PC is free now.
-- Time up: the tile flashes "Time up: Rahul" with a sound until staff click **Cleared**.
+- Time up: the tile flashes "Time up: Rahul" with a sound, and a strip above the grid lists each one with a **Cleared** button. Both stay until staff click it.
 - Browsers block sound until the page has been clicked, so the page shows an **Enable sound** button after each load.
 
 **Admin** additions: Customers (balance, history, Add cash top-up, Correction), Offers, Bookings (search by customer/PC/date, cancel with refund), new Café settings fields. Wallet entries are read-only.
