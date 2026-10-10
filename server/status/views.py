@@ -4,7 +4,7 @@ import json
 import re
 
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -110,7 +110,7 @@ def _outage_minutes(pcs, now, offline_timeout_s):
     return int(silent_s // 60)
 
 
-@login_required
+@staff_member_required(login_url="login")
 def dashboard(request):
     now = timezone.now()
     cafe = CafeSettings.load()

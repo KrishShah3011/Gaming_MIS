@@ -19,11 +19,12 @@ def make_pc(hostname, seen_ago=0, idle_s=0, event="heartbeat", active=True, seen
 
 class DashboardTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user("staff", password="pw-123456789")
+        self.user = User.objects.create_user("staff", password="pw-123456789", is_staff=True)
 
-    def test_login_required(self):
-        response = self.client.get("/")
-        self.assertRedirects(response, "/accounts/login/?next=/", fetch_redirect_response=False)
+    def test_staff_only(self):
+        self.assertRedirects(self.client.get("/staff/"), "/staff/login/?next=/staff/", fetch_redirect_response=False)
+        self.client.force_login(User.objects.create_user("player", password="pw-123456789"))
+        self.assertRedirects(self.client.get("/staff/"), "/staff/login/?next=/staff/", fetch_redirect_response=False)
 
     def test_tiles_and_counts(self):
         make_pc("PC01")
@@ -31,7 +32,7 @@ class DashboardTests(TestCase):
         make_pc("PC03", seen=False)
         make_pc("PC04", active=False)
         self.client.force_login(self.user)
-        response = self.client.get("/")
+        response = self.client.get("/staff/")
         self.assertContains(response, "In use 1 · Idle 1 · Off 1")
         self.assertContains(response, '<section class="tile in_use">')
         self.assertContains(response, '<section class="tile idle">')
@@ -45,13 +46,13 @@ class DashboardTests(TestCase):
     def test_outage_banner_when_cafe_goes_silent(self):
         make_pc("PC01", seen_ago=600)
         self.client.force_login(self.user)
-        self.assertContains(self.client.get("/"), "No data from café for 10 min")
+        self.assertContains(self.client.get("/staff/"), "No data from café for 10 min")
 
     def test_no_banner_after_normal_closing(self):
         make_pc("PC01", seen_ago=3600)
         make_pc("PC02", seen_ago=600, event="shutdown")  # last PC to report shut down cleanly
         self.client.force_login(self.user)
-        self.assertNotContains(self.client.get("/"), "No data from café")
+        self.assertNotContains(self.client.get("/staff/"), "No data from café")
 
     def test_password_reset_not_exposed(self):
         self.assertEqual(self.client.get("/accounts/password_reset/").status_code, 404)
@@ -65,13 +66,14 @@ class DashboardTests(TestCase):
     )
     def test_login_through_quick_tunnel_passes_csrf(self):
         client = Client(enforce_csrf_checks=True)
-        client.get("/accounts/login/", HTTP_HOST="abc.trycloudflare.com", HTTP_X_FORWARDED_PROTO="https")
+        client.get("/staff/login/", HTTP_HOST="abc.trycloudflare.com", HTTP_X_FORWARDED_PROTO="https")
         response = client.post(
-            "/accounts/login/",
+            "/staff/login/",
             {"username": "staff", "password": "pw-123456789", "csrfmiddlewaretoken": client.cookies["csrftoken"].value},
             HTTP_HOST="abc.trycloudflare.com",
             HTTP_ORIGIN="https://abc.trycloudflare.com",
             HTTP_X_FORWARDED_PROTO="https",
         )
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/staff/")
         self.assertTrue(response.cookies["sessionid"]["secure"])
