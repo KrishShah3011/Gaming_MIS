@@ -1,0 +1,53 @@
+{% extends "booking/base.html" %}
+{% load booking_extras %}
+{% block title %}My bookings{% endblock %}
+{% block content %}
+<h1>My bookings</h1>
+
+{% if upcoming %}
+<ul class="rows">
+  {% for b in upcoming %}
+  <li class="row">
+    <span>
+      <strong class="num">{{ b.pc }}</strong>
+      {% if b.is_now %}<span class="chip live">Playing now</span>{% else %}<span class="chip">Upcoming</span>{% endif %}<br>
+      <span class="meta">{{ b.start|date:"D j M" }}, {{ b.start|time:"H:i" }}–{{ b.end|time:"H:i" }} · paid {{ b.paid|rupees }}</span>
+    </span>
+    <span style="display:flex;flex-wrap:wrap;gap:.5rem">
+      <form method="post" action="{% url 'extend_booking' b.pk %}">
+        {% csrf_token %}
+        <label for="extra-{{ b.pk }}" class="help" style="margin:0">Add</label>
+        <select id="extra-{{ b.pk }}" name="minutes">
+          {% for m, price in extra %}<option value="{{ m }}">{{ m|duration }} for {{ price|rupees }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-small btn-ghost" type="submit">Add time</button>
+      </form>
+      {% if b.can_cancel %}
+      <form method="post" action="{% url 'cancel_booking' b.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-small btn-danger" type="submit">Cancel and get {{ b.paid|rupees }} back</button>
+      </form>
+      {% else %}
+      <span class="meta">Cancellation closed at {{ b.cancel_deadline|time:"H:i" }}</span>
+      {% endif %}
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>No upcoming bookings.</p>
+<a class="btn" href="{% url 'book' %}">Book a seat</a>
+{% endif %}
+
+{% if past %}
+<h2>Past</h2>
+<ul class="rows">
+  {% for b in past %}
+  <li class="row">
+    <span><strong>{{ b.pc }}</strong><br><span class="meta">{{ b.start|date:"D j M" }}, {{ b.start|time:"H:i" }}–{{ b.end|time:"H:i" }}</span></span>
+    <span class="meta">{% if b.cancelled_at %}Cancelled{% else %}Done{% endif %}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

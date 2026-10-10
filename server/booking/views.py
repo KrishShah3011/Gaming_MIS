@@ -3,16 +3,19 @@ from datetime import date, timedelta
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import Http404
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from status.models import CafeSettings
 
 from . import rules, services
 from .auth import customer_required
 from .models import Customer
+from .templatetags.booking_extras import duration, rupees
 
 
 class PhoneForm(forms.ModelForm):
@@ -109,3 +112,50 @@ def ticket(request, group):
         "paid": sum(services.paid_paise(b) for b in bookings),
         "balance": services.balance_paise(request.customer),
     })
+
+
+@customer_required
+def my_bookings(request):
+    now, cafe = timezone.now(), CafeSettings.load()
+    mine = request.customer.bookings.select_related("pc")
+    upcoming = list(mine.filter(cancelled_at__isnull=True, period__endswith__gt=now).order_by("period"))
+    for booking in upcoming:
+        booking.paid = services.paid_paise(booking)
+        booking.is_now = booking.start <= now
+        booking.can_cancel = rules.can_cancel(booking.start, now, cafe.cancel_cutoff_min)
+        booking.cancel_deadline = rules.cancel_deadline(booking.start, cafe.cancel_cutoff_min)
+    past = mine.filter(Q(cancelled_at__isnull=False) | Q(period__endswith__lte=now)).order_by("-period")[:20]
+    extra = sorted({cafe.booking_step_min, 60, 120})
+    return render(request, "booking/bookings.html", {
+        "upcoming": upcoming,
+        "past": past,
+        "extra": [(m, rules.price_paise(cafe.hourly_rate_rupees, m)) for m in extra],
+    })
+
+
+@require_POST
+@customer_required
+def cancel_booking(request, pk):
+    booking = get_object_or_404(request.customer.bookings.select_related("pc"), pk=pk)
+    try:
+        refund = services.cancel(booking, timezone.now())
+    except services.BookingError as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, f"Cancelled {booking.pc}. {rupees(refund)} is back in your wallet.")
+    return redirect("bookings")
+
+
+@require_POST
+@customer_required
+def extend_booking(request, pk):
+    booking = get_object_or_404(request.customer.bookings.select_related("pc"), pk=pk)
+    minutes = int(request.POST["minutes"]) if request.POST.get("minutes", "").isdigit() else 0
+    try:
+        price = services.extend(booking, minutes, timezone.now())
+    except services.BookingError as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, f"Added {duration(minutes)} to {booking.pc} for {rupees(price)}.")
+    return redirect("bookings")
+
