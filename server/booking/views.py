@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from django import forms
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import Http404
@@ -14,7 +15,7 @@ from status.models import CafeSettings
 
 from . import rules, services
 from .auth import customer_required
-from .models import Customer
+from .models import Booking, Customer
 from .templatetags.booking_extras import duration, rupees
 
 
@@ -158,4 +159,13 @@ def extend_booking(request, pk):
     else:
         messages.success(request, f"Added {duration(minutes)} to {booking.pc} for {rupees(price)}.")
     return redirect("bookings")
+
+
+@require_POST
+@staff_member_required(login_url="login")
+def clear_booking(request, pk):
+    """Staff have dealt with a finished booking: stop its Time up alert."""
+    Booking.objects.filter(pk=pk, cleared_at__isnull=True).update(cleared_at=timezone.now(), cleared_by=request.user)
+    return redirect("dashboard")
+
 

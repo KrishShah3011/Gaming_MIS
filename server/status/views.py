@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 
 from .models import PC, CafeSettings, StateChange
 from .state import IDLE, IN_USE, OFF, compute_state, settle
+from booking import services as booking_services
 
 MAX_BODY_BYTES = 1024
 MAX_PCS = 50
@@ -116,14 +117,23 @@ def dashboard(request):
     cafe = CafeSettings.load()
     pcs = list(PC.objects.filter(is_active=True))
     tiles, counts = [], {IN_USE: 0, IDLE: 0, OFF: 0}
+    bookings = booking_services.tile_bookings(now)
+    time_up = list(booking_services.time_up(now))
+    time_up_by_pc = {}
+    for booking in time_up:
+        time_up_by_pc.setdefault(booking.pc_id, booking)
     for pc in pcs:
         state, since = compute_state(pc.last(), now, cafe.idle_threshold_s, cafe.offline_timeout_s)
         counts[state] += 1
-        tiles.append({"pc": pc, "state": state, "label": STATE_LABELS[state], "since": since})
+        tiles.append({
+            "pc": pc, "state": state, "label": STATE_LABELS[state], "since": since,
+            "booking": bookings.get(pc.id, {}), "time_up": time_up_by_pc.get(pc.id),
+        })
     return render(request, "status/dashboard.html", {
         "tiles": tiles,
         "counts": counts,
         "outage_minutes": _outage_minutes(pcs, now, cafe.offline_timeout_s),
         "now": now,
         "cafe": cafe,
+        "time_up": time_up,
     })

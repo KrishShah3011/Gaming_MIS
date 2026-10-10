@@ -7,13 +7,13 @@
 <title>Café PCs — Fleet Operations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-base: #07090e;
-    --bg-surface: #0e131f;
-    --bg-surface-elevated: #151c2c;
-    --bg-surface-hover: #1c263c;
+    --bg-base: #0E0B1A;
+    --bg-surface: #1A1530;
+    --bg-surface-elevated: #241D42;
+    --bg-surface-hover: #2E2552;
     --border-subtle: rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.16);
     
@@ -47,7 +47,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Barlow', system-ui, sans-serif;
     background-color: var(--bg-base);
     background-image: 
       radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.07) 0%, transparent 50%),
@@ -320,7 +320,7 @@
   .metric-number {
     font-size: 2rem;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Chakra Petch', sans-serif;
     letter-spacing: -0.03em;
     color: #ffffff;
     line-height: 1.1;
@@ -405,7 +405,7 @@
 
   .filter-count {
     font-size: 0.6875rem;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Chakra Petch', sans-serif;
     font-weight: 700;
     padding: 0.1rem 0.35rem;
     border-radius: 4px;
@@ -464,7 +464,7 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.6875rem;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Chakra Petch', sans-serif;
     padding: 0.15rem 0.35rem;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
@@ -557,7 +557,7 @@
   .tile h2 {
     font-size: 1.15rem;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Chakra Petch', sans-serif;
     letter-spacing: -0.02em;
     color: #ffffff;
     margin: 0;
@@ -633,7 +633,7 @@
 
   .tile .time-text {
     font-size: 0.75rem;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Chakra Petch', sans-serif;
     color: var(--text-secondary);
     display: flex;
     align-items: center;
@@ -729,7 +729,7 @@
   .drawer-title-group h3 {
     font-size: 1.25rem;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Chakra Petch', sans-serif;
     color: #ffffff;
   }
 
@@ -792,7 +792,7 @@
   }
 
   .telemetry-row .val {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Chakra Petch', sans-serif;
     color: var(--text-primary);
     font-weight: 500;
   }
@@ -850,7 +850,7 @@
   }
 
   .activity-time {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Chakra Petch', sans-serif;
     font-size: 0.75rem;
     color: var(--text-muted);
     min-width: 60px;
@@ -873,6 +873,20 @@
     .search-and-tools { max-width: none; }
     .filter-tabs { overflow-x: auto; }
   }
+
+  /* Bookings (Milestone 2) */
+  .booking-line { margin: .35rem 0 0; font-size: .82rem; color: var(--text-secondary); }
+  .booking-line.time-up { color: #FF2A6D; font-weight: 700; }
+  .tile:has(.time-up) .tile-card { box-shadow: 0 0 0 2px #FF2A6D; animation: timeup 1s steps(2) infinite; }
+  @keyframes timeup { 50% { box-shadow: 0 0 0 2px #FF2A6D, 0 0 24px rgba(255, 42, 109, .6); } }
+  .time-up-strip:not(.has-items) { display: none; }
+  .time-up-item { display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: center; justify-content: space-between;
+    padding: .75rem 1rem; margin-bottom: .5rem; background: rgba(255, 42, 109, .12); border-left: 4px solid #FF2A6D; }
+  .time-up-item form { margin: 0; }
+  .clear-btn, .sound-btn { min-height: 40px; padding: .4rem 1rem; border: 0; cursor: pointer; font: 700 .95rem 'Chakra Petch', sans-serif; }
+  .clear-btn { background: #FCEE0A; color: #0E0B1A; }
+  .sound-btn { background: var(--bg-surface-elevated); color: var(--text-primary); margin-bottom: .75rem; }
+  @media (prefers-reduced-motion: reduce) { .tile:has(.time-up) .tile-card { animation: none; } }
 </style>
 </head>
 <body>
@@ -1070,6 +1084,16 @@
     </div>
   </div>
 
+  <button id="enable-sound" type="button" class="sound-btn">Enable sound</button>
+  <section id="time-up" class="time-up-strip{% if time_up %} has-items{% endif %}" aria-live="assertive">
+    {% for b in time_up %}
+    <div class="time-up-item">
+      <span><strong>{{ b.pc }}</strong> · Time up: {{ b.customer.first_name }} (ended {{ b.end|time:"H:i" }})</span>
+      <form method="post" action="{% url 'clear_booking' b.pk %}">{% csrf_token %}<button type="submit" class="clear-btn">Cleared</button></form>
+    </div>
+    {% endfor %}
+  </section>
+
   <!-- Contract element: Tests check exact tag '<section class="tile {{ t.state }}">' and id="grid" -->
   <main class="grid" id="grid">
     {% for t in tiles %}
@@ -1103,6 +1127,10 @@
               {{ t.label }}
             </p>
           </div>
+
+          {% if t.time_up %}<p class="booking-line time-up">Time up: {{ t.time_up.customer.first_name }}</p>
+          {% elif t.booking.now %}<p class="booking-line">{{ t.booking.now.customer.first_name }}, until {{ t.booking.now.end|time:"H:i" }}</p>
+          {% elif t.booking.next %}<p class="booking-line">Next: {{ t.booking.next.start|time:"H:i" }}</p>{% endif %}
 
           <div class="tile-footer">
             <p class="time-text">
@@ -1158,7 +1186,7 @@
           <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:600;">Current State</span>
           <div style="font-size:1.35rem; font-weight:700; color:#fff;" id="drawerStateLabel">-</div>
         </div>
-        <div style="font-family:'JetBrains Mono', monospace; font-size:0.875rem; color:var(--text-secondary);" id="drawerTimeAgo">-</div>
+        <div style="font-family:'Chakra Petch', sans-serif; font-size:0.875rem; color:var(--text-secondary);" id="drawerTimeAgo">-</div>
       </div>
     </div>
 
@@ -1507,21 +1535,40 @@ updateOccupancy();
 
 attachTileListeners();
 
+// Time-up sound. Browsers only allow sound after a click, hence the button.
+let soundOn = false;
+let timeUpCount = document.querySelectorAll(".time-up-item").length;
+function beep() {
+  const ctx = new AudioContext(), osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.frequency.value = 880; gain.gain.value = 0.15;
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(); osc.stop(ctx.currentTime + 0.4);
+}
+document.getElementById("enable-sound").addEventListener("click", (event) => {
+  soundOn = true;
+  event.currentTarget.hidden = true;
+  if (timeUpCount) beep();
+});
+
 // --- Automated 10-Second Live Polling (Contract Compliant) ---
 setInterval(async () => {
   try {
     const response = await fetch(location.href, { cache: "no-store" });
     if (!response.ok || response.redirected) { location.reload(); return; }
     const fresh = new DOMParser().parseFromString(await response.text(), "text/html");
-    if (!["summary", "banner-slot", "grid"].every((id) => fresh.getElementById(id))) {
+    if (!["summary", "banner-slot", "time-up", "grid"].every((id) => fresh.getElementById(id))) {
       location.reload(); 
       return;
     }
     
     // Replace required elements
-    for (const id of ["summary", "banner-slot", "grid"]) {
+    for (const id of ["summary", "banner-slot", "time-up", "grid"]) {
       document.getElementById(id).replaceWith(fresh.getElementById(id));
     }
+
+    const count = document.querySelectorAll(".time-up-item").length;
+    if (soundOn && count > timeUpCount) beep();
+    timeUpCount = count;
 
     // Reattach interactive listeners & restore filters
     attachTileListeners();

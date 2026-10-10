@@ -19,6 +19,7 @@ urlpatterns = [
     path("me/wallet/", wallet_views.wallet, name="wallet"),
     path("me/wallet/order", wallet_views.topup_order, name="topup_order"),
     path("me/wallet/paid", wallet_views.topup_paid, name="topup_paid"),
+    path("staff/bookings/<int:pk>/clear", views.clear_booking, name="clear_booking"),
     path("payments/razorpay/webhook", wallet_views.razorpay_webhook, name="razorpay_webhook"),
     policy("terms"),
     policy("privacy"),
