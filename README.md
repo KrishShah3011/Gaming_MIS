@@ -90,8 +90,8 @@ cd ../deploy
 
 ## 5. Check the dashboard and login
 
-1. Open http://localhost:8000 — **expect** to be sent to the login page.
-2. Log in with the admin user from step 3 — **expect** the dashboard (empty, no PCs yet).
+1. Open http://localhost:8000/staff/ — **expect** to be sent to the login page (`/staff/login/`).
+2. Log in with the admin user from step 3 (the superuser from `createsuperuser` is staff) — **expect** the dashboard (empty, no PCs yet).
 3. Open http://localhost:8000/accounts/password_reset/ — **expect** a 404 page (only login/logout are exposed).
 
 ## 6. Use short timings for testing
@@ -163,7 +163,7 @@ The agent waits a random 0–30 s before its first heartbeat, then a tile with y
 cloudflared tunnel --url http://localhost:8000
 ```
 
-Open the printed `https://....trycloudflare.com` link on a phone, log in, and **expect** the same dashboard. The link changes every time you run the command.
+Open the printed `https://....trycloudflare.com/staff/` link on a phone, log in, and **expect** the same dashboard. The link changes every time you run the command.
 
 ## 10. Clean up
 
@@ -175,7 +175,29 @@ docker compose down -v     # stop the server and delete all data
 
 ---
 
-## Checklist
+## Milestone 2: booking website
+
+1. **Google sign-in.** In Google Cloud Console → APIs & Services → Credentials, create an OAuth client (type Web application). Add the redirect URI `http://localhost:8000/accounts/google/login/callback/` (and later `https://app.<domain>/accounts/google/login/callback/`). Put the client ID and secret in `deploy/.env` as `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, then `docker compose up -d --force-recreate web`.
+2. **Razorpay test mode.** Copy the Test Mode key ID and secret into `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET`. Set Payment capture to Automatic. For webhooks, run `cloudflared tunnel --url http://localhost:8000`, add a webhook for `https://<link>.trycloudflare.com/payments/razorpay/webhook` with event `payment.captured`, and put its secret in `RAZORPAY_WEBHOOK_SECRET`. The quick-tunnel link changes every run, so update the webhook URL each time.
+3. **Café settings** in admin: set the hourly rate, opening hours, café name, phone, email and address (these appear on the Contact and policy pages), and add an offer.
+
+### Verification checklist
+
+- [ ] `docker compose run --rm web python manage.py test` passes
+- [ ] Sign in with Google at http://localhost:8000/accounts/login/, enter a phone number
+- [ ] Wallet: top up ₹500 with Razorpay test UPI `success@razorpay`; balance and history update; the offer bonus is added
+- [ ] Webhook: with the tunnel running, Razorpay's dashboard shows the `payment.captured` delivery as 200
+- [ ] Book: pick 2 seats, the bar shows "Book 2 PCs for ₹…", the ticket appears, the balance drops
+- [ ] My bookings: cancel one PC (refund appears), add 30 min to the other
+- [ ] Staff dashboard /staff/: the tile shows "Name, until HH:MM"; after the end, "Time up" flashes and beeps (click Enable sound first); Cleared removes it
+- [ ] Admin: add a cash top-up with an offer; a correction needs a reason
+- [ ] Phone (via the tunnel): Home, Book and Wallet work at 390 px wide; with Reduce motion on, nothing animates
+- [ ] Chrome DevTools → Lighthouse → Accessibility is 90 or more on Home and Book
+- [ ] Policy pages show the café's details; ask the owner to approve the wording
+
+---
+
+## Milestone 1 Checklist
 
 - [ ] `healthz` returns `ok`
 - [ ] 47 Django tests pass (and Go tests, if Go installed)
