@@ -2,6 +2,7 @@
 .claude/
 __pycache__/
 .venv/
+.vscode/
 *.exe
 *.exe~
 *~
