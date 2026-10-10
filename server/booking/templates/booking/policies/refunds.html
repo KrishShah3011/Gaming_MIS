@@ -1,0 +1,15 @@
+{% extends "booking/base.html" %}
+{% block title %}Cancellation and refunds{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Cancellation and refunds</h1>
+  <h2>Cancelling a booking</h2>
+  <p>You can cancel each booked PC separately from <strong>My bookings</strong>, up to {{ cafe.cancel_cutoff_min }} minutes before it starts. The full amount you paid for that PC, including any time you added, goes straight back to your wallet.</p>
+  <h2>After the cutoff</h2>
+  <p>Bookings can't be cancelled after the cutoff, once they've started, or if you don't turn up. There's no refund for these.</p>
+  <h2>If something goes wrong on our side</h2>
+  <p>If a PC breaks or the café has to close, staff will cancel your booking and refund it to your wallet in full.</p>
+  <h2>Wallet top-ups</h2>
+  <p>Refunds go to your wallet, not back to your bank or card. If you need your remaining balance back, <a href="{% url 'contact' %}">contact us</a> and the café will refund it in cash.</p>
+</article>
+{% endblock %}

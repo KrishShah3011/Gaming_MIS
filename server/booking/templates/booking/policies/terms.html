@@ -1,0 +1,20 @@
+{% extends "booking/base.html" %}
+{% block title %}Terms{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Terms</h1>
+  <p>These terms cover booking gaming PCs at {{ cafe.cafe_name }} through this website.</p>
+  <h2>Your account</h2>
+  <p>You sign in with Google. Keep your Google account secure: anyone using it can book and spend your wallet balance.</p>
+  <h2>Wallet</h2>
+  <p>You pay for bookings from a prepaid wallet in rupees. You can top it up online or with cash at the counter. Offer bonuses are added to the wallet and work like any other balance. The balance doesn't expire and can't be withdrawn to a bank account.</p>
+  <h2>Bookings</h2>
+  <p>A booking reserves one PC for the time you choose and is paid when you book. It stays yours for that whole time, even if you arrive late or leave early. When your time ends, café staff will ask you to finish up.</p>
+  <h2>Cancellations</h2>
+  <p>See <a href="{% url 'refunds' %}">Cancellation and refunds</a>.</p>
+  <h2>At the café</h2>
+  <p>Follow staff instructions and treat the equipment with care. The café may refuse service for misuse; any remaining balance is then refunded in cash.</p>
+  <h2>Contact</h2>
+  <p>Questions? See <a href="{% url 'contact' %}">Contact</a>.</p>
+</article>
+{% endblock %}

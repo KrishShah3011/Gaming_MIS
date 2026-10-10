@@ -1,0 +1,14 @@
+{% extends "booking/base.html" %}
+{% load socialaccount %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<section class="signin panel cut">
+  <h1>Sign in</h1>
+  <p>Use your Google account. There's no new password to remember.</p>
+  <form method="post" action="{% provider_login_url 'google' next=request.GET.next|default:'/' %}">
+    {% csrf_token %}
+    <button class="btn" type="submit">Sign in with Google</button>
+  </form>
+  <p class="help">By signing in you agree to the <a href="{% url 'terms' %}">Terms</a> and <a href="{% url 'privacy' %}">Privacy Policy</a>.</p>
+</section>
+{% endblock %}

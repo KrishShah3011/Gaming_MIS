@@ -1,0 +1,12 @@
+{% extends "booking/base.html" %}
+{% block title %}Contact{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Contact</h1>
+  <p><strong>{{ cafe.cafe_name }}</strong></p>
+  {% if cafe.address %}<p>{{ cafe.address|linebreaksbr }}</p>{% endif %}
+  {% if cafe.contact_phone %}<p>Phone: <a href="tel:{{ cafe.contact_phone }}">{{ cafe.contact_phone }}</a></p>{% endif %}
+  {% if cafe.contact_email %}<p>Email: <a href="mailto:{{ cafe.contact_email }}">{{ cafe.contact_email }}</a></p>{% endif %}
+  <p>Open {{ cafe.opens_at|time:"H:i" }} to {{ cafe.closes_at|time:"H:i" }}.</p>
+</article>
+{% endblock %}

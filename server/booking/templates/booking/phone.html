@@ -1,0 +1,17 @@
+{% extends "booking/base.html" %}
+{% block title %}Your mobile number{% endblock %}
+{% block content %}
+<section class="signin panel cut">
+  <h1>One more thing</h1>
+  <form method="post">
+    {% csrf_token %}
+    <div class="field">
+      <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+      {{ form.phone }}
+      <p class="help">{{ form.phone.help_text }}</p>
+      {% for error in form.phone.errors %}<p class="error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    <button class="btn" type="submit">Save number</button>
+  </form>
+</section>
+{% endblock %}

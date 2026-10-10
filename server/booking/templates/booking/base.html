@@ -1,0 +1,37 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ cafe.cafe_name }}{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'booking/theme.css' %}">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="/">{{ cafe.cafe_name }}</a>
+  <nav aria-label="Main">
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}<button class="link" type="submit">Sign out</button></form>
+    {% else %}
+      <a class="btn btn-small" href="{% url 'account_login' %}">Sign in</a>
+    {% endif %}
+  </nav>
+</header>
+{% if messages %}
+<div class="messages">{% for message in messages %}<p class="msg {{ message.tags }}" role="status">{{ message }}</p>{% endfor %}</div>
+{% endif %}
+<main class="page">{% block content %}{% endblock %}</main>
+<footer class="foot">
+  <a href="{% url 'terms' %}">Terms</a>
+  <a href="{% url 'privacy' %}">Privacy</a>
+  <a href="{% url 'refunds' %}">Cancellation and refunds</a>
+  <a href="{% url 'contact' %}">Contact</a>
+</footer>
+<script src="{% static 'booking/motion.js' %}"></script>
+<script src="{% static 'booking/app.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,16 @@
+{% extends "booking/base.html" %}
+{% block title %}Privacy Policy{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Privacy Policy</h1>
+  <p>{{ cafe.cafe_name }} keeps only what it needs to run your bookings.</p>
+  <h2>What we store</h2>
+  <p>Your name and email address from Google, the mobile number you give us, your bookings and your wallet history. Payments are handled by Razorpay; we never see or store your card or bank details.</p>
+  <h2>How we use it</h2>
+  <p>To show and manage your bookings, keep your wallet balance correct, and contact you about a booking. We don't sell or share your data, and we don't send marketing messages.</p>
+  <h2>Who can see it</h2>
+  <p>Café staff, to run the café. Other customers only see whether a PC is free or taken, never who booked it.</p>
+  <h2>Your choices</h2>
+  <p>To correct your details or delete your account, <a href="{% url 'contact' %}">contact us</a>. Wallet history is kept as long as the law requires for payment records.</p>
+</article>
+{% endblock %}
