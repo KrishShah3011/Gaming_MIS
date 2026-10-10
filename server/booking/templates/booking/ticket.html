@@ -1,0 +1,26 @@
+{% extends "booking/base.html" %}
+{% load booking_extras %}
+{% block title %}You're booked{% endblock %}
+{% block content %}
+<section class="ticket cut" id="ticket">
+  <h1 class="glitch">You're booked</h1>
+  <dl>
+    <dt>{{ bookings|length|pluralize:"PC,PCs" }}</dt><dd>{{ pc_names }}</dd>
+    <dt>Day</dt><dd>{{ first.start|date:"D j M" }}</dd>
+    <dt>Time</dt><dd>{{ first.start|time:"H:i" }}–{{ first.end|time:"H:i" }}</dd>
+    <dt>Paid</dt><dd>{{ paid|rupees }}</dd>
+    <dt>Balance</dt><dd>{{ balance|rupees }}</dd>
+  </dl>
+  <p>Show this screen at the counter if staff ask. Your seat is yours for the whole time, even if the PC is switched off.</p>
+  <div class="actions" id="ticket-actions">
+    <a class="btn btn-ghost" href="{% url 'book' %}">Book more</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const m = motion();
+if (m) m.animate("#ticket", { opacity: [0, 1], clipPath: ["inset(0 0 100% 0)", "inset(0 0 0% 0)"] }, { duration: 0.45, ease: "easeOut" });
+</script>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "booking/base.html" %}
+{% block content %}
+<section class="hero">
+  {% if is_open %}
+  <h1 class="glitch">{{ free }} of {{ seats|length }} PCs free right now</h1>
+  {% else %}
+  <h1 class="glitch">Closed now</h1>
+  {% endif %}
+  <p class="lede">₹{{ cafe.hourly_rate_rupees }} an hour. Pick your seat, pay from your wallet, play.{% if not is_open %} We open at {{ cafe.opens_at|time:"H:i" }}.{% endif %}</p>
+  <div class="actions">
+    {% if is_open %}<a class="btn" href="{% url 'book' %}?start=now">Start now</a>{% endif %}
+    <a class="btn btn-ghost" href="{% url 'book' %}">Book for later</a>
+  </div>
+</section>
+
+{% if seats %}
+<div class="floor" aria-label="Seat map right now">
+  {% for seat in seats %}
+  <div class="tile {% if seat.free %}free{% else %}taken{% endif %}">
+    <span class="name">{{ seat.pc }}</span>
+    <span class="state">{% if seat.free %}Free{% else %}Taken{% endif %}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if offers %}
+<h2>Top-up offers</h2>
+<div class="offers">
+  {% for offer in offers %}
+  <a class="offer cut" href="{% url 'wallet' %}" style="text-decoration:none;color:inherit">
+    <p class="big">Pay ₹{{ offer.pay_rupees }}, get ₹{{ offer.pay_rupees|add:offer.bonus_rupees }}</p>
+    <p class="help">About {{ offer.hours|floatformat:"-1" }} hrs of play.</p>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

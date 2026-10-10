@@ -2,7 +2,7 @@
 from datetime import timedelta
 from uuid import uuid4
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, OperationalError, transaction
 from django.db.backends.postgresql.psycopg_any import DateTimeTZRange
 from django.db.models import Sum
 from django.utils import timezone
@@ -90,7 +90,7 @@ def book(customer, pc_ids, start, minutes, now, start_now=False):
                 booking = Booking.objects.create(customer=customer, pc=pc, group=group, period=DateTimeTZRange(start, end))
                 WalletEntry.objects.create(customer=customer, amount_paise=-price, kind=WalletEntry.BOOKING, booking=booking, at=now)
                 bookings.append(booking)
-    except IntegrityError:  # the no-overlap constraint: someone booked a seat a moment ago
+    except (IntegrityError, OperationalError):  # the no-overlap constraint: someone booked a seat a moment ago
         raise BookingError("One of those PCs was just booked by someone else. Pick another seat.") from None
     return bookings
 

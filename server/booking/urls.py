@@ -9,6 +9,9 @@ def policy(name):
 
 
 urlpatterns = [
+    path("", views.home, name="home"),
+    path("book/", views.book, name="book"),
+    path("book/<uuid:group>/", views.ticket, name="ticket"),
     path("me/phone/", views.phone, name="phone"),
     path("me/wallet/", wallet_views.wallet, name="wallet"),
     path("me/wallet/order", wallet_views.topup_order, name="topup_order"),

@@ -1,0 +1,113 @@
+{% extends "booking/base.html" %}
+{% load booking_extras %}
+{% block title %}Book a seat{% endblock %}
+{% block content %}
+<h1>Book a seat</h1>
+
+<form id="when" method="get" class="step">
+  <h2><span class="n">1</span> When</h2>
+  <div class="when">
+    <div class="field">
+      <label for="day">Day</label>
+      <select id="day" name="day">
+        {% for d in days %}<option value="{{ d.isoformat }}"{% if d == day %} selected{% endif %}>{% if forloop.first %}Today{% else %}{{ d|date:"D j M" }}{% endif %}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field" id="start-field">
+      <label for="start">Start</label>
+      <select id="start" name="start">
+        {% if can_start_now %}<option value="now"{% if start_now %} selected{% endif %}>Start now</option>{% endif %}
+        {% for t in starts %}<option value="{{ t|time:'H:i' }}"{% if not start_now and t == start %} selected{% endif %}>{{ t|time:"H:i" }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="minutes">How long</label>
+      <select id="minutes" name="minutes">
+        {% for m in lengths %}<option value="{{ m }}"{% if m == minutes %} selected{% endif %}>{{ m|duration }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <noscript><button class="btn btn-ghost" type="submit">Show free seats</button></noscript>
+</form>
+
+<form id="seatform" method="post">
+  {% csrf_token %}
+  <input type="hidden" name="day" value="{{ day.isoformat }}">
+  <input type="hidden" name="start" value="{% if start_now %}now{% elif start %}{{ start|time:'H:i' }}{% endif %}">
+  <input type="hidden" name="minutes" value="{{ minutes }}">
+  <section class="step">
+    <h2><span class="n">2</span> Seats</h2>
+    {% if seats %}
+    <p class="help">{{ free_count }} free for {{ minutes|duration }} from {% if start_now %}now{% else %}{{ start|time:"H:i" }}{% endif %}. Tap the seats you want.</p>
+    <div class="floor">
+      {% for seat in seats %}
+      <label class="seat">
+        <input type="checkbox" name="pc" value="{{ seat.pc.id }}"{% if not seat.free %} disabled{% endif %}{% if seat.free and seat.pc.id|stringformat:"s" in picked %} checked{% endif %}>
+        <span class="tile {% if seat.free %}free{% else %}taken{% endif %}">
+          <span class="name">{{ seat.pc }}</span>
+          <span class="state">{% if seat.free %}Free{% else %}Taken{% endif %}</span>
+          {% if seat.free_until %}<span class="until">{% if seat.free %}Next booking {{ seat.free_until|time:"H:i" }}{% else %}Free until {{ seat.free_until|time:"H:i" }}{% endif %}</span>{% endif %}
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>No start times left on this day. Pick another day.</p>
+    {% endif %}
+  </section>
+  <div class="paybar" id="paybar" data-price="{{ price }}" data-balance="{{ balance }}" data-wallet="{% url 'wallet' %}">
+    <div>
+      <div id="picked-names">No seats selected</div>
+      <span class="total num" id="total" data-value="0">₹0</span>
+      <span class="help">Balance {{ balance|rupees }} → <span id="after" class="num">{{ balance|rupees }}</span></span>
+    </div>
+    <button class="btn" id="book-btn" type="submit">Book selected seats</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function wireSeats() {
+  const form = document.getElementById("seatform");
+  const bar = document.getElementById("paybar");
+  const total = document.getElementById("total"), after = document.getElementById("after");
+  const button = document.getElementById("book-btn"), names = document.getElementById("picked-names");
+  const price = Number(bar.dataset.price), balance = Number(bar.dataset.balance);
+  const update = () => {
+    const picked = [...form.querySelectorAll('input[name="pc"]:checked')];
+    const sum = price * picked.length;
+    rollTo(total, sum, rupees);
+    after.textContent = rupees(balance - sum);
+    names.textContent = picked.length
+      ? picked.map((input) => input.closest(".seat").querySelector(".name").textContent).join(", ")
+      : "No seats selected";
+    button.disabled = picked.length === 0;
+    button.dataset.topup = sum > balance ? "1" : "";
+    button.textContent = !picked.length ? "Pick a seat"
+      : sum > balance ? "Top up to book"
+      : `Book ${picked.length} PC${picked.length > 1 ? "s" : ""} for ${rupees(sum)}`;
+  };
+  form.addEventListener("change", (event) => {
+    if (event.target.name === "pc") { pop(event.target.nextElementSibling); update(); }
+  });
+  form.addEventListener("submit", (event) => {
+    if (button.dataset.topup) { event.preventDefault(); location.href = bar.dataset.wallet; }
+  });
+  update();
+}
+
+document.getElementById("when").addEventListener("change", async () => {
+  const query = "?" + new URLSearchParams(new FormData(document.getElementById("when")));
+  history.replaceState(null, "", query);
+  try {
+    const fresh = new DOMParser().parseFromString(await (await fetch(query)).text(), "text/html");
+    for (const id of ["start-field", "seatform"]) document.getElementById(id).replaceWith(fresh.getElementById(id));
+    wireSeats();
+  } catch {
+    location.href = query;
+  }
+});
+wireSeats();
+</script>
+{% endblock %}
