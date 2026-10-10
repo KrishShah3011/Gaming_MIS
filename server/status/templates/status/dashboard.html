@@ -4,56 +4,1532 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <noscript><meta http-equiv="refresh" content="10"></noscript>
-<title>Café PCs</title>
+<title>Café PCs — Fleet Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-  body { font-family: system-ui, sans-serif; margin: 1rem; background: #f6f6f6; color: #111; }
-  header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .5rem; }
-  h1 { margin: 0; }
-  .banner { background: #fff3cd; border: 1px solid #c9a227; padding: .75rem; margin: 1rem 0; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .5rem; margin-top: 1rem; }
-  .tile { background: #fff; border-radius: .5rem; padding: .75rem; border-left: .5rem solid; }
-  .tile h2 { margin: 0 0 .25rem; font-size: 1.1rem; }
-  .tile p { margin: 0; }
-  .state { font-weight: 700; }
-  .in_use { border-color: #1a7f37; }
-  .idle { border-color: #c9a227; }
-  .off { border-color: #8c8c8c; color: #555; }
+  :root {
+    --bg-base: #07090e;
+    --bg-surface: #0e131f;
+    --bg-surface-elevated: #151c2c;
+    --bg-surface-hover: #1c263c;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    
+    --state-in-use: #10b981;
+    --state-in-use-bg: rgba(16, 185, 129, 0.12);
+    --state-in-use-border: rgba(16, 185, 129, 0.35);
+    --state-in-use-glow: rgba(16, 185, 129, 0.25);
+    
+    --state-idle: #f59e0b;
+    --state-idle-bg: rgba(245, 158, 11, 0.12);
+    --state-idle-border: rgba(245, 158, 11, 0.35);
+    --state-idle-glow: rgba(245, 158, 11, 0.25);
+    
+    --state-off: #64748b;
+    --state-off-bg: rgba(100, 116, 139, 0.08);
+    --state-off-border: rgba(100, 116, 139, 0.22);
+    
+    --accent: #10b981;
+    --accent-glow: rgba(16, 185, 129, 0.3);
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.15);
+    --danger-border: rgba(239, 68, 68, 0.4);
+    
+    --header-height: 4.25rem;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-base);
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.07) 0%, transparent 50%),
+      radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.04) 0%, transparent 40%),
+      linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding-bottom: 3rem;
+    line-height: 1.5;
+  }
+
+  /* --- Top Navigation Header --- */
+  header.site-header {
+    background: rgba(14, 19, 31, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-subtle);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 0.75rem 1.5rem;
+  }
+
+  .header-inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .brand-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(15, 23, 42, 0.8));
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
+
+  .brand-titles {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brand-titles h1 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .brand-badge {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  /* Test contract string container: MUST contain exact string "In use X · Idle Y · Off Z" */
+  #summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid var(--border-subtle);
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-feature-settings: "tnum";
+    white-space: nowrap;
+  }
+
+  .pulse-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: livePulse 2s infinite ease-in-out;
+  }
+
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.8); }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .nav-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.15s ease;
+    text-decoration: none;
+  }
+
+  .nav-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+  }
+
+  .nav-btn.primary {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: var(--accent);
+  }
+
+  .nav-btn.primary:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: var(--accent);
+  }
+
+  .logout-btn {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.15s ease;
+  }
+
+  .logout-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ffffff;
+    border-color: var(--danger);
+  }
+
+  /* --- Main Container --- */
+  .app-container {
+    max-width: 1440px;
+    margin: 1.5rem auto 0;
+    padding: 0 1.5rem;
+  }
+
+  /* --- Outage Banner Slot (Test Contract) --- */
+  #banner-slot {
+    margin-bottom: 1.25rem;
+  }
+
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #fff3cd;
+    border: 1px solid #c9a227;
+    color: #856404;
+    padding: 0.85rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .banner.dark-theme-alert {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fde68a;
+  }
+
+  /* --- KPI Telemetry Cards --- */
+  .metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .metric-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 1.15rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  .metric-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+
+  .metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+  }
+
+  .metric-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .metric-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .metric-val-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .metric-number {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+    line-height: 1.1;
+  }
+
+  .metric-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .metric-card.in-use-card .metric-icon { background: var(--state-in-use-bg); color: var(--state-in-use); }
+  .metric-card.idle-card .metric-icon { background: var(--state-idle-bg); color: var(--state-idle); }
+  .metric-card.off-card .metric-icon { background: var(--state-off-bg); color: var(--state-off); }
+  .metric-card.fleet-card .metric-icon { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+  .occupancy-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+    margin-top: 0.75rem;
+    overflow: hidden;
+  }
+
+  .occupancy-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    border-radius: 9999px;
+    transition: width 0.4s ease;
+  }
+
+  /* --- Interactive Controls & Filters --- */
+  .control-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 0.85rem 1.15rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(7, 9, 14, 0.6);
+    padding: 0.25rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .filter-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.4rem 0.75rem;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.15s ease;
+  }
+
+  .filter-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .filter-tab.active {
+    background: var(--bg-surface-elevated);
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .filter-count {
+    font-size: 0.6875rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .filter-tab.active .filter-count.in-use { background: var(--state-in-use-bg); color: var(--state-in-use); }
+  .filter-tab.active .filter-count.idle { background: var(--state-idle-bg); color: var(--state-idle); }
+  .filter-tab.active .filter-count.off { background: var(--state-off-bg); color: var(--state-off); }
+
+  .search-and-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex: 1;
+    max-width: 480px;
+    justify-content: flex-end;
+  }
+
+  .search-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .search-wrapper svg {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    background: rgba(7, 9, 14, 0.6);
+    border: 1px solid var(--border-subtle);
+    border-radius: 9px;
+    padding: 0.5rem 0.85rem 0.5rem 2.35rem;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    transition: all 0.15s ease;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: rgba(7, 9, 14, 0.9);
+  }
+
+  .kbd-shortcut {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6875rem;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 0.15rem 0.35rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  /* --- Grid of PC Tiles (Test Contract: id="grid") --- */
+  main.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+    gap: 0.85rem;
+    margin-top: 1rem;
+  }
+
+  /* Test contract tile classes: class="tile in_use", class="tile idle", class="tile off" */
+  .tile {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 0;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    border-left: 5px solid;
+    user-select: none;
+    overflow: hidden;
+  }
+
+  .tile-card {
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 135px;
+    height: 100%;
+    outline: none;
+  }
+
+  .tile:hover {
+    transform: translateY(-2px);
+    background: var(--bg-surface-elevated);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .tile:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* Exact state classes from Django models */
+  .tile.in_use {
+    border-left-color: var(--state-in-use);
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+
+  .tile.in_use:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 8px 24px var(--state-in-use-glow);
+  }
+
+  .tile.idle {
+    border-left-color: var(--state-idle);
+    border-color: rgba(245, 158, 11, 0.2);
+  }
+
+  .tile.idle:hover {
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 8px 24px var(--state-idle-glow);
+  }
+
+  .tile.off {
+    border-left-color: var(--state-off);
+    border-color: var(--border-subtle);
+    opacity: 0.82;
+  }
+
+  .tile.off:hover {
+    opacity: 1;
+    border-color: var(--border-strong);
+  }
+
+  .tile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+  }
+
+  .tile h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    margin: 0;
+  }
+
+  .tile-label-chip {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+  }
+
+  /* Required by tests: <p class="state">{{ t.label }}</p> */
+  .tile .state {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+  }
+
+  .tile.in_use .state {
+    background: var(--state-in-use-bg);
+    color: var(--state-in-use);
+  }
+
+  .tile.idle .state {
+    background: var(--state-idle-bg);
+    color: var(--state-idle);
+  }
+
+  .tile.off .state {
+    background: var(--state-off-bg);
+    color: var(--state-off);
+  }
+
+  .tile .state-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .tile.in_use .state-dot {
+    background: var(--state-in-use);
+    box-shadow: 0 0 6px var(--state-in-use);
+    animation: livePulse 2s infinite ease-in-out;
+  }
+
+  .tile.idle .state-dot {
+    background: var(--state-idle);
+    box-shadow: 0 0 6px var(--state-idle);
+  }
+
+  .tile.off .state-dot {
+    background: var(--state-off);
+  }
+
+  .tile-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .tile .time-text {
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+  }
+
+  .tile .inspect-hint {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .tile:hover .inspect-hint {
+    opacity: 1;
+    color: var(--accent);
+  }
+
+  /* Empty state */
+  .empty-fleet-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 1.5rem;
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: 16px;
+  }
+
+  .empty-fleet-state svg {
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+  }
+
+  .empty-fleet-state h3 {
+    font-size: 1.15rem;
+    color: #ffffff;
+    margin-bottom: 0.35rem;
+  }
+
+  .empty-fleet-state p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* --- Slide-Over Inspector Drawer --- */
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .drawer-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 440px;
+    background: #0d121e;
+    border-left: 1px solid var(--border-strong);
+    z-index: 101;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .drawer.active {
+    transform: translateX(0);
+  }
+
+  .drawer-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(14, 19, 31, 0.7);
+  }
+
+  .drawer-title-group h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: #ffffff;
+  }
+
+  .drawer-title-group p {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+  }
+
+  .drawer-close-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .drawer-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  .drawer-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .telemetry-group {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .telemetry-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    font-size: 0.8125rem;
+  }
+
+  .telemetry-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .telemetry-row .key {
+    color: var(--text-muted);
+  }
+
+  .telemetry-row .val {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .label-edit-box {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .label-input {
+    flex: 1;
+    background: rgba(7, 9, 14, 0.7);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    color: #ffffff;
+  }
+
+  .label-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .save-label-btn {
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.45rem 0.85rem;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .drawer-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    gap: 0.75rem;
+    background: rgba(14, 19, 31, 0.7);
+  }
+
+  /* Activity drawer */
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    font-size: 0.8125rem;
+  }
+
+  .activity-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    min-width: 60px;
+  }
+
+  .activity-desc {
+    flex: 1;
+    color: var(--text-secondary);
+  }
+
+  .activity-desc strong {
+    color: #ffffff;
+  }
+
+  @media (max-width: 768px) {
+    header.site-header { padding: 0.75rem 1rem; }
+    .app-container { padding: 0 1rem; }
+    main.grid { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
+    .control-bar { flex-direction: column; align-items: stretch; }
+    .search-and-tools { max-width: none; }
+    .filter-tabs { overflow-x: auto; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>Café PCs</h1>
-  <p id="summary">In use {{ counts.in_use }} · Idle {{ counts.idle }} · Off {{ counts.off }}</p>
-  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand-group">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="3" rx="2"/>
+          <line x1="8" x2="16" y1="21" y2="21"/>
+          <line x1="12" x2="12" y1="17" y2="21"/>
+          <circle cx="8" cy="10" r="1.5" fill="currentColor"/>
+          <circle cx="16" cy="10" r="1.5" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="brand-titles">
+        <h1>Café PCs <span class="brand-badge">FLEET OPS</span></h1>
+      </div>
+    </div>
+
+    <!-- Contract element: Tests check exact text inside #summary -->
+    <p id="summary">
+      <span class="pulse-indicator"><span class="pulse-dot"></span> Live</span>
+      In use {{ counts.in_use }} · Idle {{ counts.idle }} · Off {{ counts.off }}
+    </p>
+
+    <div class="header-actions">
+      <button type="button" class="nav-btn" id="soundToggleBtn" title="Toggle audio alerts on state change" aria-label="Toggle sound alerts">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="soundIcon">
+          <path d="M11 5 6 9H2v6h4l5 4V5Z"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+        <span id="soundLabel">Sound Off</span>
+      </button>
+
+      <button type="button" class="nav-btn" id="activityDrawerBtn" title="View Recent Station Transitions">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <span>Events</span>
+      </button>
+
+      <button type="button" class="nav-btn" id="settingsDrawerBtn" title="Café Timings and Agent Configuration">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span>Settings</span>
+      </button>
+
+      {% if user.is_staff %}
+      <a href="/admin/" class="nav-btn primary" title="Open Django Administration Console">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span>Admin</span>
+      </a>
+      {% endif %}
+
+      <form method="post" action="{% url 'logout' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="logout-btn" title="Sign out of café terminal">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" x2="9" y1="12" y2="12"/>
+          </svg>
+          <span>Log out</span>
+        </button>
+      </form>
+    </div>
+  </div>
 </header>
-<div id="banner-slot">
-{% if outage_minutes is not None %}
-<p class="banner" role="alert">No data from café for {{ outage_minutes }} min — internet may be down; statuses may be stale.</p>
-{% endif %}
-</div>
-<main class="grid" id="grid">
-{% for t in tiles %}
-  <section class="tile {{ t.state }}">
-    <h2>{{ t.pc }}</h2>
-    <p class="state">{{ t.label }}</p>
-    {% if t.since %}<p>{% if t.state == "off" %}since {{ t.since|time:"H:i" }}{% else %}for {{ t.since|timesince:now }}{% endif %}</p>{% endif %}
+
+<div class="app-container">
+
+  <!-- Contract element: Tests check exact text inside #banner-slot -->
+  <div id="banner-slot">
+    {% if outage_minutes is not None %}
+    <p class="banner dark-theme-alert" role="alert">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+        <line x1="12" x2="12" y1="9" y2="13"/>
+        <line x1="12" x2="12.01" y1="17" y2="17"/>
+      </svg>
+      <span>No data from café for {{ outage_minutes }} min — internet may be down; statuses may be stale.</span>
+    </p>
+    {% endif %}
+  </div>
+
+  <!-- Telemetry Overview Cards -->
+  <section class="metrics-strip" aria-label="Fleet Telemetry Overview">
+    <div class="metric-card fleet-card">
+      <div class="metric-header">
+        <span class="metric-label">Fleet Occupancy</span>
+        <div class="metric-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M9 21V9"/>
+          </svg>
+        </div>
+      </div>
+      <div class="metric-val-row">
+        <span class="metric-number" id="occupancyVal">0%</span>
+        <span class="metric-sub">{{ counts.in_use }} of {{ tiles|length }} Rigs</span>
+      </div>
+      <div class="occupancy-bar">
+        <div class="occupancy-fill" id="occupancyBar" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <div class="metric-card in-use-card">
+      <div class="metric-header">
+        <span class="metric-label">In Use (Gaming)</span>
+        <div class="metric-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </div>
+      </div>
+      <div class="metric-val-row">
+        <span class="metric-number" style="color: var(--state-in-use);">{{ counts.in_use }}</span>
+        <span class="metric-sub">Active Gamer Sessions</span>
+      </div>
+    </div>
+
+    <div class="metric-card idle-card">
+      <div class="metric-header">
+        <span class="metric-label">Idle / Away</span>
+        <div class="metric-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+      </div>
+      <div class="metric-val-row">
+        <span class="metric-number" style="color: var(--state-idle);">{{ counts.idle }}</span>
+        <span class="metric-sub">No input &gt; {{ cafe.idle_threshold_s|default:600 }}s</span>
+      </div>
+    </div>
+
+    <div class="metric-card off-card">
+      <div class="metric-header">
+        <span class="metric-label">Off / Available</span>
+        <div class="metric-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+            <line x1="12" x2="12" y1="2" y2="12"/>
+          </svg>
+        </div>
+      </div>
+      <div class="metric-val-row">
+        <span class="metric-number" style="color: var(--state-off);">{{ counts.off }}</span>
+        <span class="metric-sub">Ready for Walk-ins</span>
+      </div>
+    </div>
   </section>
-{% empty %}
-  <p>No PCs have reported yet.</p>
-{% endfor %}
-</main>
+
+  <!-- Interactive Controls Bar -->
+  <div class="control-bar">
+    <div class="filter-tabs" role="tablist">
+      <button type="button" class="filter-tab active" data-filter="all">
+        <span>All</span>
+        <span class="filter-count">{{ tiles|length }}</span>
+      </button>
+      <button type="button" class="filter-tab" data-filter="in_use">
+        <span>In Use</span>
+        <span class="filter-count in-use">{{ counts.in_use }}</span>
+      </button>
+      <button type="button" class="filter-tab" data-filter="idle">
+        <span>Idle</span>
+        <span class="filter-count idle">{{ counts.idle }}</span>
+      </button>
+      <button type="button" class="filter-tab" data-filter="off">
+        <span>Off</span>
+        <span class="filter-count off">{{ counts.off }}</span>
+      </button>
+    </div>
+
+    <div class="search-and-tools">
+      <div class="search-wrapper">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" x2="16.65" y1="21" y2="16.65"/>
+        </svg>
+        <input type="text" id="pcSearchInput" class="search-input" placeholder="Search station (e.g. PC07, VIP)..." aria-label="Search stations">
+        <span class="kbd-shortcut">/</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contract element: Tests check exact tag '<section class="tile {{ t.state }}">' and id="grid" -->
+  <main class="grid" id="grid">
+    {% for t in tiles %}
+      <section class="tile {{ t.state }}">
+        <div 
+          class="tile-card"
+          tabindex="0"
+          role="button"
+          aria-label="PC {{ t.pc.hostname }} is {{ t.label }}"
+          data-pc="{{ t.pc.hostname }}"
+          data-label="{{ t.pc.label }}"
+          data-state="{{ t.state }}"
+          data-statelabel="{{ t.label }}"
+          data-time="{% if t.since %}{% if t.state == 'off' %}since {{ t.since|time:'H:i' }}{% else %}for {{ t.since|timesince:now }}{% endif %}{% endif %}"
+          data-mac="{{ t.pc.mac }}"
+          data-version="{{ t.pc.agent_version }}"
+          data-lastseen="{{ t.pc.last_seen_at|date:'H:i:s, d M' }}"
+          data-lastevent="{{ t.pc.last_event }}"
+          data-id="{{ t.pc.id }}"
+          data-idle="{{ t.pc.idle_s_at_last_seen }}"
+        >
+          <div class="tile-header">
+            <div>
+              <h2>{{ t.pc }}</h2>
+              {% if t.pc.label and t.pc.label != t.pc.hostname %}
+              <div class="tile-label-chip">{{ t.pc.label }}</div>
+              {% endif %}
+            </div>
+            <p class="state">
+              <span class="state-dot"></span>
+              {{ t.label }}
+            </p>
+          </div>
+
+          <div class="tile-footer">
+            <p class="time-text">
+              {% if t.since %}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                {% if t.state == "off" %}since {{ t.since|time:"H:i" }}{% else %}for {{ t.since|timesince:now }}{% endif %}
+              {% else %}
+                <span style="color: var(--text-muted);">No reports</span>
+              {% endif %}
+            </p>
+            <span class="inspect-hint">Inspect ↗</span>
+          </div>
+        </div>
+      </section>
+    {% empty %}
+      <div class="empty-fleet-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="3" rx="2"/>
+          <line x1="8" x2="16" y1="21" y2="21"/>
+          <line x1="12" x2="12" y1="17" y2="21"/>
+        </svg>
+        <h3>No PCs have reported yet.</h3>
+        <p>Ensure cafe-agent.exe is running on client machines or run the PC simulator.</p>
+      </div>
+    {% endfor %}
+  </main>
+</div>
+
+<!-- Slide-Over PC Inspector Drawer -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="pcDrawer" aria-hidden="true" role="dialog" aria-labelledby="drawerHostname">
+  <div class="drawer-header">
+    <div class="drawer-title-group">
+      <h3 id="drawerHostname">PC Station</h3>
+      <p id="drawerFriendlyLabel">Gaming Station Telemetry</p>
+    </div>
+    <button type="button" class="drawer-close-btn" id="closeDrawerBtn" aria-label="Close Inspector">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" x2="6" y1="6" y2="18"/>
+        <line x1="6" x2="18" y1="6" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="drawer-body">
+    <!-- Quick Status Hero -->
+    <div class="telemetry-group" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:600;">Current State</span>
+          <div style="font-size:1.35rem; font-weight:700; color:#fff;" id="drawerStateLabel">-</div>
+        </div>
+        <div style="font-family:'JetBrains Mono', monospace; font-size:0.875rem; color:var(--text-secondary);" id="drawerTimeAgo">-</div>
+      </div>
+    </div>
+
+    <!-- Station Assignment -->
+    <div class="telemetry-group">
+      <span style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Assigned Station Label</span>
+      <div style="font-size:1rem; font-weight:600; color:#ffffff; margin-top:0.4rem;" id="drawerFriendlyLabelVal">-</div>
+      <p style="font-size:0.6875rem; color:var(--text-muted); margin-top:0.35rem;">Manage label assignments via Django Admin.</p>
+    </div>
+
+    <!-- Hardware & Agent Specs -->
+    <div class="telemetry-group">
+      <span style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Hardware & Agent Telemetry</span>
+      <div style="margin-top:0.5rem;">
+        <div class="telemetry-row">
+          <span class="key">MAC Address</span>
+          <span class="val" id="drawerMac">-</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="key">Agent Version</span>
+          <span class="val" id="drawerVersion">-</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="key">Last Event</span>
+          <span class="val" id="drawerLastEvent">-</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="key">Last Heartbeat</span>
+          <span class="val" id="drawerLastSeen">-</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="key">Idle Timer</span>
+          <span class="val" id="drawerIdleSeconds">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer-footer">
+    {% if user.is_staff %}
+    <a href="#" id="drawerAdminLink" class="nav-btn primary" style="flex:1; justify-content:center;" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        <polyline points="15 3 21 3 21 9"/>
+        <line x1="10" x2="21" y1="14" y2="3"/>
+      </svg>
+      <span>Edit Station in Admin</span>
+    </a>
+    {% endif %}
+    <button type="button" class="nav-btn" id="drawerDismissBtn" style="flex:1; justify-content:center;">Close</button>
+  </div>
+</aside>
+
+<!-- Slide-Over Recent Events Drawer -->
+<aside class="drawer" id="activityDrawer" aria-hidden="true" role="dialog" aria-labelledby="activityTitle">
+  <div class="drawer-header">
+    <div class="drawer-title-group">
+      <h3 id="activityTitle">Café Transitions</h3>
+      <p>Live Activity & State History</p>
+    </div>
+    <button type="button" class="drawer-close-btn" id="closeActivityBtn" aria-label="Close Events">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" x2="6" y1="6" y2="18"/>
+        <line x1="6" x2="18" y1="6" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    {% for chg in recent_changes %}
+      <div class="activity-item">
+        <span class="activity-time">{{ chg.at|time:"H:i:s" }}</span>
+        <div class="activity-desc">
+          <strong>{{ chg.pc }}</strong>
+          <span>transitioned from <em style="color:var(--text-muted)">{{ chg.from_state }}</em> to <strong style="color:var(--text-primary)">{{ chg.to_state }}</strong></span>
+        </div>
+      </div>
+    {% empty %}
+      <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; padding:2rem 0;">No transitions recorded yet.</p>
+    {% endfor %}
+  </div>
+</aside>
+
+<!-- Slide-Over Café Settings Drawer -->
+<aside class="drawer" id="settingsDrawer" aria-hidden="true" role="dialog" aria-labelledby="settingsTitle">
+  <div class="drawer-header">
+    <div class="drawer-title-group">
+      <h3 id="settingsTitle">Café Tunables</h3>
+      <p>System Configuration & Intervals</p>
+    </div>
+    <button type="button" class="drawer-close-btn" id="closeSettingsBtn" aria-label="Close Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" x2="6" y1="6" y2="18"/>
+        <line x1="6" x2="18" y1="6" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div class="telemetry-group">
+      <span style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Timing Thresholds</span>
+      <div style="margin-top:0.5rem;">
+        <div class="telemetry-row">
+          <span class="key">Idle Threshold</span>
+          <span class="val">{{ cafe.idle_threshold_s|default:600 }}s ({{ cafe.idle_threshold_s|default:600|divisibleby:60|yesno:"10 min,Custom" }})</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="key">Offline Timeout</span>
+          <span class="val">{{ cafe.offline_timeout_s|default:180 }}s</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="key">Heartbeat Interval</span>
+          <span class="val">{{ cafe.heartbeat_interval_s|default:60 }}s</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="telemetry-group">
+      <span style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Security & Controls</span>
+      <div style="margin-top:0.5rem;">
+        <div class="telemetry-row">
+          <span class="key">Auto-Register New PCs</span>
+          <span class="val" style="color:{% if cafe.allow_new_pcs %}var(--accent){% else %}var(--text-muted){% endif %};">
+            {{ cafe.allow_new_pcs|yesno:"Enabled,Disabled" }}
+          </span>
+        </div>
+        <div class="telemetry-row">
+          <span class="key">Agent Remote Switch</span>
+          <span class="val" style="color:{% if cafe.agents_enabled %}var(--accent){% else %}var(--danger){% endif %};">
+            {{ cafe.agents_enabled|yesno:"Running,DISABLED" }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    {% if user.is_staff %}
+    <a href="/admin/status/cafesettings/1/change/" class="nav-btn primary" style="flex:1; justify-content:center;" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20h9"/>
+        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+      <span>Edit Tunables in Admin</span>
+    </a>
+    {% endif %}
+  </div>
+</aside>
+
 <script>
-// Swap in fresh tiles every 10 s without reloading the page (no flash, no scroll jump).
+// --- State & Client Store ---
+let activeFilter = 'all';
+let searchQuery = '';
+let selectedPcId = null;
+let soundEnabled = localStorage.getItem('cafe_sound_alerts') === 'true';
+
+// --- Sound Synthesizer via Web Audio API ---
+function playNotificationChime(frequency = 600, duration = 0.12) {
+  if (!soundEnabled) return;
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch (e) { /* ignore audio failure */ }
+}
+
+// Sound toggle UI
+const soundToggleBtn = document.getElementById('soundToggleBtn');
+const soundLabel = document.getElementById('soundLabel');
+function updateSoundUi() {
+  if (soundLabel) soundLabel.textContent = soundEnabled ? 'Sound On' : 'Sound Off';
+  if (soundToggleBtn) {
+    soundToggleBtn.classList.toggle('primary', soundEnabled);
+  }
+}
+updateSoundUi();
+
+if (soundToggleBtn) {
+  soundToggleBtn.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    localStorage.setItem('cafe_sound_alerts', soundEnabled ? 'true' : 'false');
+    updateSoundUi();
+    if (soundEnabled) playNotificationChime(800, 0.15);
+  });
+}
+
+// --- Filtering & Search ---
+function applyFilters() {
+  const query = searchQuery.trim().toLowerCase();
+  const tiles = document.querySelectorAll('#grid .tile');
+  
+  tiles.forEach(tile => {
+    const card = tile.querySelector('.tile-card') || tile;
+    let state = card.dataset.state;
+    if (!state) {
+      if (tile.classList.contains('in_use')) state = 'in_use';
+      else if (tile.classList.contains('idle')) state = 'idle';
+      else state = 'off';
+    }
+    const pc = (card.dataset.pc || tile.querySelector('h2')?.textContent || '').toLowerCase();
+    const label = (card.dataset.label || '').toLowerCase();
+    
+    const matchesFilter = (activeFilter === 'all') || (state === activeFilter);
+    const matchesQuery = (!query) || pc.includes(query) || label.includes(query);
+    
+    if (matchesFilter && matchesQuery) {
+      tile.style.display = '';
+    } else {
+      tile.style.display = 'none';
+    }
+  });
+}
+
+// Filter Tab Click Handlers
+document.querySelectorAll('.filter-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeFilter = tab.dataset.filter || 'all';
+    applyFilters();
+  });
+});
+
+// Search Input
+const searchInput = document.getElementById('pcSearchInput');
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    applyFilters();
+  });
+}
+
+// Keyboard shortcut "/" to focus search
+window.addEventListener('keydown', (e) => {
+  if (e.key === '/' && document.activeElement !== searchInput && !['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) {
+    e.preventDefault();
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.select();
+    }
+  }
+  if (e.key === 'Escape') {
+    closeAllDrawers();
+  }
+});
+
+// --- Drawer Management ---
+const overlay = document.getElementById('drawerOverlay');
+const pcDrawer = document.getElementById('pcDrawer');
+const activityDrawer = document.getElementById('activityDrawer');
+const settingsDrawer = document.getElementById('settingsDrawer');
+
+function closeAllDrawers() {
+  if (overlay) overlay.classList.remove('active');
+  if (pcDrawer) pcDrawer.classList.remove('active');
+  if (activityDrawer) activityDrawer.classList.remove('active');
+  if (settingsDrawer) settingsDrawer.classList.remove('active');
+}
+
+if (overlay) overlay.addEventListener('click', closeAllDrawers);
+document.getElementById('closeDrawerBtn')?.addEventListener('click', closeAllDrawers);
+document.getElementById('drawerDismissBtn')?.addEventListener('click', closeAllDrawers);
+document.getElementById('closeActivityBtn')?.addEventListener('click', closeAllDrawers);
+document.getElementById('closeSettingsBtn')?.addEventListener('click', closeAllDrawers);
+
+document.getElementById('activityDrawerBtn')?.addEventListener('click', () => {
+  closeAllDrawers();
+  if (overlay) overlay.classList.add('active');
+  if (activityDrawer) activityDrawer.classList.add('active');
+});
+
+document.getElementById('settingsDrawerBtn')?.addEventListener('click', () => {
+  closeAllDrawers();
+  if (overlay) overlay.classList.add('active');
+  if (settingsDrawer) settingsDrawer.classList.add('active');
+});
+
+// --- Tile Click & Inspector Population ---
+function attachTileListeners() {
+  document.querySelectorAll('#grid .tile').forEach(tile => {
+    tile.addEventListener('click', () => openPcInspector(tile));
+    tile.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openPcInspector(tile);
+      }
+    });
+  });
+}
+
+function openPcInspector(target) {
+  const card = target.querySelector('.tile-card') || target;
+  selectedPcId = card.dataset.id;
+  const hostname = card.dataset.pc || card.querySelector('h2')?.textContent || 'PC';
+  const label = card.dataset.label || '';
+  let state = card.dataset.state || '';
+  if (!state) {
+    if (target.classList.contains('in_use')) state = 'in_use';
+    else if (target.classList.contains('idle')) state = 'idle';
+    else state = 'off';
+  }
+  const stateLabel = card.dataset.statelabel || target.querySelector('.state')?.textContent?.trim() || state;
+  const time = card.dataset.time || target.querySelector('.time-text')?.textContent?.trim() || '';
+  const mac = card.dataset.mac || 'Not reported';
+  const version = card.dataset.version || 'v1.0.0';
+  const lastEvent = card.dataset.lastevent || '-';
+  const lastSeen = card.dataset.lastseen || 'Never';
+  const idle = parseInt(card.dataset.idle || '0', 10);
+
+  document.getElementById('drawerHostname').textContent = hostname;
+  document.getElementById('drawerFriendlyLabel').textContent = label ? `Assigned to: ${label}` : 'Gaming Station';
+  document.getElementById('drawerFriendlyLabelVal').textContent = label || hostname;
+  document.getElementById('drawerStateLabel').textContent = stateLabel;
+  document.getElementById('drawerTimeAgo').textContent = time || 'Live';
+  document.getElementById('drawerMac').textContent = mac;
+  document.getElementById('drawerVersion').textContent = version;
+  document.getElementById('drawerLastEvent').textContent = lastEvent;
+  document.getElementById('drawerLastSeen').textContent = lastSeen;
+  document.getElementById('drawerIdleSeconds').textContent = `${idle}s (${Math.floor(idle/60)} min)`;
+
+  const adminLink = document.getElementById('drawerAdminLink');
+  if (adminLink && selectedPcId) {
+    adminLink.href = `/admin/status/pc/${selectedPcId}/change/`;
+  }
+
+  closeAllDrawers();
+  if (overlay) overlay.classList.add('active');
+  if (pcDrawer) pcDrawer.classList.add('active');
+}
+
+function updateOccupancy() {
+  const inUse = parseInt('{{ counts.in_use }}' || '0', 10);
+  const total = parseInt('{{ tiles|length }}' || '0', 10);
+  const pct = total > 0 ? Math.round((inUse / total) * 100) : 0;
+  const valEl = document.getElementById('occupancyVal');
+  const barEl = document.getElementById('occupancyBar');
+  if (valEl) valEl.textContent = `${pct}%`;
+  if (barEl) barEl.style.width = `${pct}%`;
+}
+updateOccupancy();
+
+attachTileListeners();
+
+// --- Automated 10-Second Live Polling (Contract Compliant) ---
 setInterval(async () => {
   try {
     const response = await fetch(location.href, { cache: "no-store" });
-    if (!response.ok || response.redirected) { location.reload(); return; }  // e.g. logged out
+    if (!response.ok || response.redirected) { location.reload(); return; }
     const fresh = new DOMParser().parseFromString(await response.text(), "text/html");
-    if (!["summary", "banner-slot", "grid"].every((id) => fresh.getElementById(id))) { location.reload(); return; }
+    if (!["summary", "banner-slot", "grid"].every((id) => fresh.getElementById(id))) {
+      location.reload(); 
+      return;
+    }
+    
+    // Replace required elements
     for (const id of ["summary", "banner-slot", "grid"]) {
       document.getElementById(id).replaceWith(fresh.getElementById(id));
     }
-  } catch (error) { /* network blip: keep showing the last view */ }
+
+    // Reattach interactive listeners & restore filters
+    attachTileListeners();
+    applyFilters();
+
+  } catch (error) {
+    /* network blip: gracefully keep showing last view */
+  }
 }, 10000);
 </script>
 </body>

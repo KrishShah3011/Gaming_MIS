@@ -45,7 +45,7 @@ WSGI_APPLICATION = "mis.wsgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "status" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
