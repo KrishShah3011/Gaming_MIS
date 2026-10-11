@@ -3,18 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}{{ cafe.cafe_name }}{% endblock %}</title>
+<title>{% block title %}{{ cafe.cafe_name }} — Premier Esports Lounge{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'booking/theme.css' %}">
 </head>
 <body>
 <header class="bar">
-  <a class="brand" href="{% url 'home' %}">{{ cafe.cafe_name }}</a>
+  <a class="brand-group" href="{% url 'home' %}">
+    <span class="brand-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="20" height="14" x="2" y="3" rx="2"/>
+        <line x1="8" x2="16" y1="21" y2="21"/>
+        <line x1="12" x2="12" y1="17" y2="21"/>
+        <circle cx="8" cy="10" r="1.5" fill="currentColor"/>
+        <circle cx="16" cy="10" r="1.5" fill="currentColor"/>
+      </svg>
+    </span>
+    <div>
+      <span class="brand">{{ cafe.cafe_name }}</span>
+      <span class="brand-sub">Esports Arena & Lounge</span>
+    </div>
+  </a>
+
   <nav aria-label="Main">
+    <a href="{% url 'home' %}#floor">Arena Floor</a>
+    <a href="{% url 'home' %}#specs">Hardware</a>
+    <a href="{% url 'book' %}"{% if request.resolver_match.url_name == 'book' %} aria-current="page"{% endif %}>Book</a>
     {% if user.is_authenticated %}
-      <a href="{% url 'book' %}"{% if request.resolver_match.url_name == 'book' %} aria-current="page"{% endif %}>Book</a>
       <a href="{% url 'bookings' %}"{% if request.resolver_match.url_name == 'bookings' %} aria-current="page"{% endif %}>My bookings</a>
       <a href="{% url 'wallet' %}"{% if request.resolver_match.url_name == 'wallet' %} aria-current="page"{% endif %}>Wallet</a>
       <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}<button class="link" type="submit">Sign out</button></form>
@@ -23,16 +40,27 @@
     {% endif %}
   </nav>
 </header>
+
 {% if messages %}
 <div class="messages">{% for message in messages %}<p class="msg {{ message.tags }}" role="status">{{ message }}</p>{% endfor %}</div>
 {% endif %}
+
 <main class="page">{% block content %}{% endblock %}</main>
+
 <footer class="foot">
-  <a href="{% url 'terms' %}">Terms</a>
-  <a href="{% url 'privacy' %}">Privacy</a>
-  <a href="{% url 'refunds' %}">Cancellation and refunds</a>
-  <a href="{% url 'contact' %}">Contact</a>
+  <div class="foot-links">
+    <a href="{% url 'home' %}">Home</a>
+    <a href="{% url 'book' %}">Book Seats</a>
+    <a href="{% url 'terms' %}">Terms</a>
+    <a href="{% url 'privacy' %}">Privacy</a>
+    <a href="{% url 'refunds' %}">Cancellation and refunds</a>
+    <a href="{% url 'contact' %}">Contact</a>
+  </div>
+  <div class="foot-meta">
+    {{ cafe.cafe_name }} · Tournament Esports Battle Stations · High Refresh Displays · Gigabit Fiber
+  </div>
 </footer>
+
 <script src="{% static 'booking/motion.js' %}"></script>
 <script src="{% static 'booking/app.js' %}"></script>
 {% block scripts %}{% endblock %}

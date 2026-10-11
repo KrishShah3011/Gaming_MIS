@@ -1,25 +1,40 @@
 {% extends "admin/base.html" %}
 
-{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Gaming Café MIS{% endblock %}
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ cafe.cafe_name }} Operations{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+{% endblock %}
 
 {% block branding %}
 <div id="site-name" style="display: flex; align-items: center; gap: 0.85rem;">
-  <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <rect width="20" height="14" x="2" y="3" rx="2"/>
-      <line x1="8" x2="16" y1="21" y2="21"/>
-      <line x1="12" x2="12" y1="17" y2="21"/>
-      <circle cx="8" cy="10" r="1.5" fill="#10b981"/>
-      <circle cx="16" cy="10" r="1.5" fill="#10b981"/>
-    </svg>
-    <span style="font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; letter-spacing: -0.02em;">Gaming Café Operations</span>
+  <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: inherit;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; background: rgba(0, 229, 255, 0.12); border: 1px solid #00E5FF; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect width="20" height="14" x="2" y="3" rx="2"/>
+        <line x1="8" x2="16" y1="21" y2="21"/>
+        <line x1="12" x2="12" y1="17" y2="21"/>
+        <circle cx="8" cy="10" r="1.5" fill="#00E5FF"/>
+        <circle cx="16" cy="10" r="1.5" fill="#00E5FF"/>
+      </svg>
+    </span>
+    <div>
+      <span style="display: block; font: 700 1.15rem 'Chakra Petch', sans-serif; letter-spacing: 0.05em; text-transform: uppercase; color: #EDEAF7; line-height: 1.1;">{{ cafe.cafe_name }}</span>
+      <span style="display: block; font: 600 0.68rem 'Chakra Petch', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: #00E5FF; line-height: 1;">Control & Operations</span>
+    </div>
   </a>
 </div>
 {% endblock %}
 
 {% block userlinks %}
-  <a href="{% url 'dashboard' %}" style="margin-right: 1.25rem; color: #10b981; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
-    ← Back to Live Dashboard
+  <a href="{% url 'home' %}" style="margin-right: 1.25rem; color: #00E5FF; font-weight: 600; text-decoration: none; font-family: 'Chakra Petch', sans-serif; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+    🎮 Arena Site
+  </a>
+  <a href="{% url 'dashboard' %}" style="margin-right: 1.25rem; color: #FCEE0A; font-weight: 600; text-decoration: none; font-family: 'Chakra Petch', sans-serif; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+    ⚡ Live Fleet
   </a>
   {{ block.super }}
 {% endblock %}
@@ -28,39 +43,444 @@
 {{ block.super }}
 <style>
   :root {
-    --primary: #0b0f19;
-    --secondary: #10b981;
-    --accent: #10b981;
+    --night: #0E0B1A;
+    --night-deep: #08060F;
+    --panel: #1A1530;
+    --panel-2: #241D42;
+    --line: #3A3160;
+    --line-subtle: rgba(58, 49, 96, 0.6);
+    --yellow: #FCEE0A;
+    --cyan: #00E5FF;
+    --magenta: #FF2A6D;
+    --text: #EDEAF7;
+    --text-muted: #A49DC4;
+    --font-display: 'Chakra Petch', sans-serif;
+    --font-body: 'Barlow', system-ui, sans-serif;
+    
+    /* Django Admin core variable overrides */
+    --primary: #1A1530;
+    --secondary: #241D42;
+    --accent: #FCEE0A;
+    --primary-fg: #EDEAF7;
+    --body-fg: #EDEAF7;
+    --body-bg: #0E0B1A;
+    --body-quiet-color: #A49DC4;
+    --header-color: #EDEAF7;
+    --header-bg: #0E0B1A;
+    --breadcrumbs-bg: #140F26;
+    --breadcrumbs-fg: #A49DC4;
+    --link-fg: #00E5FF;
+    --link-hover-color: #FCEE0A;
+    --hairline-color: #3A3160;
+    --border-color: #3A3160;
   }
+
+  body {
+    background-color: var(--night) !important;
+    background-image: 
+      linear-gradient(rgba(0, 229, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 229, 255, 0.025) 1px, transparent 1px) !important;
+    background-size: 40px 40px !important;
+    color: var(--text) !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.95rem !important;
+  }
+
+  /* Header */
   #header {
-    background: #090d16 !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
-    padding: 0.85rem 1.5rem !important;
+    background: rgba(14, 11, 26, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    border-bottom: 2px solid var(--line) !important;
+    padding: 0.85rem 1.75rem !important;
   }
   #header a:link, #header a:visited {
-    color: #f8fafc;
+    color: var(--text) !important;
   }
+  #user-tools {
+    font-family: var(--font-display) !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 0.03em !important;
+  }
+  #user-tools a:hover {
+    color: var(--yellow) !important;
+  }
+
+  /* Breadcrumbs */
   div.breadcrumbs {
-    background: #0e131f !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    color: #94a3b8 !important;
+    background: #140F26 !important;
+    border-bottom: 1px solid var(--line) !important;
+    color: var(--text-muted) !important;
+    font-family: var(--font-display) !important;
+    font-size: 0.82rem !important;
+    padding: 0.65rem 1.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
   }
   div.breadcrumbs a {
-    color: #cbd5e1 !important;
+    color: var(--cyan) !important;
+    font-weight: 600 !important;
+  }
+  div.breadcrumbs a:hover {
+    color: var(--yellow) !important;
+  }
+
+  /* Main content layout */
+  #content {
+    padding: 1.75rem !important;
+  }
+  h1 {
+    font-family: var(--font-display) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    color: #ffffff !important;
+    margin-bottom: 1.25rem !important;
+    font-size: 1.75rem !important;
+  }
+  h2, h3, caption {
+    font-family: var(--font-display) !important;
+    letter-spacing: 0.03em !important;
+  }
+
+  /* Modules & App cards on dashboard */
+  .module {
+    background: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 0 !important;
+    margin-bottom: 1.5rem !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
   }
   .module h2, .module caption, .inline-group h2 {
-    background: #111622 !important;
-    color: #e2e8f0 !important;
-    font-weight: 600 !important;
+    background: var(--panel-2) !important;
+    border-bottom: 2px solid var(--line) !important;
+    color: var(--yellow) !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    text-transform: uppercase !important;
+    padding: 0.75rem 1rem !important;
+    letter-spacing: 0.06em !important;
   }
-  .button, input[type=submit], input[type=button], .submit-row input, a.button {
-    background: #10b981 !important;
+  .module table {
+    width: 100% !important;
+    background: transparent !important;
+  }
+
+  /* Tables & Changelist */
+  table {
+    border-collapse: collapse !important;
+    color: var(--text) !important;
+  }
+  thead th {
+    background: var(--panel-2) !important;
+    color: var(--cyan) !important;
+    font-family: var(--font-display) !important;
+    font-size: 0.82rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.75rem 0.9rem !important;
+    border-bottom: 2px solid var(--line) !important;
+  }
+  thead th a {
+    color: var(--cyan) !important;
+  }
+  thead th a:hover {
+    color: var(--yellow) !important;
+  }
+  tbody th, tbody td {
+    padding: 0.75rem 0.9rem !important;
+    border-bottom: 1px solid var(--line-subtle) !important;
+    font-size: 0.92rem !important;
+  }
+  tbody tr {
+    transition: background 0.12s ease !important;
+  }
+  tbody tr:nth-child(odd) {
+    background: var(--panel) !important;
+  }
+  tbody tr:nth-child(even) {
+    background: rgba(36, 29, 66, 0.45) !important;
+  }
+  tbody tr:hover {
+    background: rgba(0, 229, 255, 0.08) !important;
+  }
+  tbody tr.selected {
+    background: rgba(252, 238, 10, 0.12) !important;
+  }
+  #changelist {
+    background: transparent !important;
+  }
+  #changelist-form .actions {
+    background: var(--panel-2) !important;
+    border: 1px solid var(--line) !important;
+    padding: 0.65rem 1rem !important;
+    margin-bottom: 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+  }
+  #changelist-form .actions label {
+    font-family: var(--font-display) !important;
+    font-size: 0.85rem !important;
+    text-transform: uppercase !important;
+    color: var(--text-muted) !important;
+  }
+  #changelist-filter {
+    background: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    padding: 0 !important;
+  }
+  #changelist-filter h2 {
+    background: var(--panel-2) !important;
+    color: var(--yellow) !important;
+    padding: 0.75rem 1rem !important;
+    margin: 0 !important;
+    border-bottom: 1px solid var(--line) !important;
+    font-size: 0.9rem !important;
+    text-transform: uppercase !important;
+  }
+  #changelist-filter h3 {
+    color: var(--cyan) !important;
+    padding: 0.75rem 1rem 0.25rem !important;
+    font-size: 0.8rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+  }
+  #changelist-filter ul {
+    padding: 0 1rem 0.75rem !important;
+  }
+  #changelist-filter li.selected a {
+    color: var(--yellow) !important;
+    font-weight: 700 !important;
+  }
+  #changelist-filter li a {
+    color: var(--text) !important;
+  }
+  #changelist-filter li a:hover {
+    color: var(--cyan) !important;
+  }
+
+  /* Form controls & inputs */
+  fieldset {
+    background: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    border-top: 3px solid var(--cyan) !important;
+    margin-bottom: 1.5rem !important;
+    padding: 1.25rem !important;
+  }
+  fieldset h2 {
+    background: transparent !important;
+    color: var(--yellow) !important;
+    border-bottom: 1px solid var(--line) !important;
+    padding-bottom: 0.5rem !important;
+    margin-bottom: 1rem !important;
+    font-size: 1.05rem !important;
+    text-transform: uppercase !important;
+  }
+  .form-row {
+    border-bottom: 1px solid var(--line-subtle) !important;
+    padding: 0.85rem 0 !important;
+  }
+  .form-row:last-child {
+    border-bottom: none !important;
+  }
+  label {
+    color: var(--text) !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+  }
+  .required label:after {
+    color: var(--magenta) !important;
+  }
+  input[type=text], input[type=password], input[type=email], input[type=url], 
+  input[type=number], input[type=tel], textarea, select {
+    background: #0E0B1A !important;
+    border: 1px solid var(--line) !important;
     color: #ffffff !important;
-    border-radius: 6px !important;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 0 !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.95rem !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  }
+  input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, 
+  input[type=number]:focus, textarea:focus, select:focus {
+    border-color: var(--cyan) !important;
+    box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.25) !important;
+    outline: none !important;
+  }
+  .help, p.help {
+    color: var(--text-muted) !important;
+    font-size: 0.82rem !important;
+    margin-top: 0.35rem !important;
+  }
+  .readonly {
+    color: var(--cyan) !important;
     font-weight: 600 !important;
   }
-  .button:hover, input[type=submit]:hover, input[type=button]:hover {
-    background: #059669 !important;
+
+  /* Buttons */
+  .button, input[type=submit], input[type=button], .submit-row input, a.button {
+    background: var(--yellow) !important;
+    color: #0E0B1A !important;
+    border: none !important;
+    border-radius: 0 !important;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px) !important;
+    font-family: var(--font-display) !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.6rem 1.4rem !important;
+    cursor: pointer !important;
+    transition: filter 0.15s ease, transform 0.15s ease !important;
+  }
+  .button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover {
+    filter: brightness(1.12) !important;
+    background: var(--yellow) !important;
+    color: #0E0B1A !important;
+  }
+  .button.default, input[type=submit].default {
+    background: var(--yellow) !important;
+    color: #0E0B1A !important;
+    box-shadow: 0 0 12px rgba(252, 238, 10, 0.35) !important;
+  }
+  .submit-row {
+    background: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    padding: 1rem 1.25rem !important;
+  }
+  .submit-row a.deletelink {
+    background: transparent !important;
+    border: 1px solid var(--magenta) !important;
+    color: var(--magenta) !important;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px) !important;
+    font-family: var(--font-display) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    padding: 0.55rem 1.2rem !important;
+    height: auto !important;
+    line-height: normal !important;
+  }
+  .submit-row a.deletelink:hover {
+    background: var(--magenta) !important;
+    color: #0E0B1A !important;
+  }
+
+  /* Messages & Error alerts */
+  ul.messagelist {
+    margin: 0 0 1.25rem 0 !important;
+    padding: 0 !important;
+  }
+  ul.messagelist li {
+    background: var(--panel-2) !important;
+    border-left: 4px solid var(--cyan) !important;
+    color: #ffffff !important;
+    padding: 0.85rem 1.25rem !important;
+    font-weight: 500 !important;
+    margin-bottom: 0.5rem !important;
+    font-family: var(--font-body) !important;
+  }
+  ul.messagelist li.success {
+    border-left-color: var(--yellow) !important;
+  }
+  ul.messagelist li.warning {
+    border-left-color: #f59e0b !important;
+  }
+  ul.messagelist li.error {
+    border-left-color: var(--magenta) !important;
+    color: #ffffff !important;
+  }
+  .errornote {
+    background: rgba(255, 42, 109, 0.15) !important;
+    border: 1px solid var(--magenta) !important;
+    border-left: 4px solid var(--magenta) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    padding: 0.85rem 1.25rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+  ul.errorlist {
+    color: var(--magenta) !important;
+    font-weight: 600 !important;
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0.35rem 0 0 !important;
+  }
+
+  /* Search box */
+  #toolbar {
+    background: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    padding: 0.75rem 1rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+  #searchbar {
+    min-width: 280px !important;
+  }
+
+  /* Object tools / Add button */
+  .object-tools a {
+    background: var(--panel-2) !important;
+    border: 1px solid var(--cyan) !important;
+    color: var(--cyan) !important;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px) !important;
+    font-family: var(--font-display) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.5rem 1.1rem !important;
+    transition: all 0.15s ease !important;
+  }
+  .object-tools a:hover {
+    background: var(--cyan) !important;
+    color: #0E0B1A !important;
+  }
+
+  /* Pagination */
+  .paginator {
+    background: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    color: var(--text-muted) !important;
+    padding: 0.65rem 1rem !important;
+    font-family: var(--font-display) !important;
+    font-size: 0.85rem !important;
+  }
+  .paginator a:link, .paginator a:visited {
+    color: var(--cyan) !important;
+    font-weight: 600 !important;
+  }
+  .paginator .this-page {
+    color: var(--yellow) !important;
+    font-weight: 700 !important;
+  }
+
+  /* Inline tabular forms */
+  .inline-group {
+    background: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .inline-related h3 {
+    background: var(--panel-2) !important;
+    color: var(--cyan) !important;
+    border-bottom: 1px solid var(--line) !important;
+    padding: 0.6rem 1rem !important;
+  }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0E0B1A;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #3A3160;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00E5FF;
   }
 </style>
 {% endblock %}
