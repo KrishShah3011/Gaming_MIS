@@ -6,34 +6,34 @@
 {{ block.super }}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block branding %}
 <div id="site-name" style="display: flex; align-items: center; gap: 0.85rem;">
   <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: inherit;">
-    <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; background: rgba(0, 229, 255, 0.12); border: 1px solid #00E5FF; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; background: #fcee0a; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#07060b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect width="20" height="14" x="2" y="3" rx="2"/>
         <line x1="8" x2="16" y1="21" y2="21"/>
         <line x1="12" x2="12" y1="17" y2="21"/>
-        <circle cx="8" cy="10" r="1.5" fill="#00E5FF"/>
-        <circle cx="16" cy="10" r="1.5" fill="#00E5FF"/>
+        <circle cx="8" cy="10" r="1.5" fill="#07060b"/>
+        <circle cx="16" cy="10" r="1.5" fill="#07060b"/>
       </svg>
     </span>
     <div>
-      <span style="display: block; font: 700 1.15rem 'Chakra Petch', sans-serif; letter-spacing: 0.05em; text-transform: uppercase; color: #EDEAF7; line-height: 1.1;">{{ cafe.cafe_name }}</span>
-      <span style="display: block; font: 600 0.68rem 'Chakra Petch', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: #00E5FF; line-height: 1;">Control & Operations</span>
+      <span style="display: block; font: 900 1.6rem 'Big Shoulders Display', sans-serif; letter-spacing: 0.04em; text-transform: uppercase; color: #f3f1f8; line-height: 1.1;">{{ cafe.cafe_name }}</span>
+      <span style="display: block; font: 600 0.68rem 'Chakra Petch', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: #00f0ff; line-height: 1;">Control & Operations</span>
     </div>
   </a>
 </div>
 {% endblock %}
 
 {% block userlinks %}
-  <a href="{% url 'home' %}" style="margin-right: 1.25rem; color: #00E5FF; font-weight: 600; text-decoration: none; font-family: 'Chakra Petch', sans-serif; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+  <a href="{% url 'home' %}" style="margin-right: 1.25rem; color: #00f0ff; font-weight: 600; text-decoration: none; font-family: 'Chakra Petch', sans-serif; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
     🎮 Arena Site
   </a>
-  <a href="{% url 'dashboard' %}" style="margin-right: 1.25rem; color: #FCEE0A; font-weight: 600; text-decoration: none; font-family: 'Chakra Petch', sans-serif; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+  <a href="{% url 'dashboard' %}" style="margin-right: 1.25rem; color: #fcee0a; font-weight: 600; text-decoration: none; font-family: 'Chakra Petch', sans-serif; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
     ⚡ Live Fleet
   </a>
   {{ block.super }}
@@ -43,43 +43,44 @@
 {{ block.super }}
 <style>
   :root {
-    --night: #0E0B1A;
-    --night-deep: #08060F;
-    --panel: #1A1530;
-    --panel-2: #241D42;
-    --line: #3A3160;
-    --line-subtle: rgba(58, 49, 96, 0.6);
-    --yellow: #FCEE0A;
-    --cyan: #00E5FF;
-    --magenta: #FF2A6D;
-    --text: #EDEAF7;
-    --text-muted: #A49DC4;
+    --night: #07060b;
+    --night-deep: #050408;
+    --panel: #12101b;
+    --panel-2: #1a1726;
+    --line: #2e2944;
+    --line-subtle: rgba(46, 41, 68, 0.6);
+    --yellow: #fcee0a;
+    --cyan: #00f0ff;
+    --magenta: #ff003c;
+    --text: #f3f1f8;
+    --text-muted: #9b95b2;
     --font-display: 'Chakra Petch', sans-serif;
-    --font-body: 'Barlow', system-ui, sans-serif;
+    --font-body: 'Chakra Petch', system-ui, sans-serif;
+    --font-poster: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
     
     /* Django Admin core variable overrides */
-    --primary: #1A1530;
-    --secondary: #241D42;
-    --accent: #FCEE0A;
-    --primary-fg: #EDEAF7;
-    --body-fg: #EDEAF7;
-    --body-bg: #0E0B1A;
-    --body-quiet-color: #A49DC4;
-    --header-color: #EDEAF7;
-    --header-bg: #0E0B1A;
-    --breadcrumbs-bg: #140F26;
-    --breadcrumbs-fg: #A49DC4;
-    --link-fg: #00E5FF;
-    --link-hover-color: #FCEE0A;
-    --hairline-color: #3A3160;
-    --border-color: #3A3160;
+    --primary: #12101b;
+    --secondary: #1a1726;
+    --accent: #fcee0a;
+    --primary-fg: #f3f1f8;
+    --body-fg: #f3f1f8;
+    --body-bg: #07060b;
+    --body-quiet-color: #9b95b2;
+    --header-color: #f3f1f8;
+    --header-bg: #07060b;
+    --breadcrumbs-bg: #0d0b14;
+    --breadcrumbs-fg: #9b95b2;
+    --link-fg: #00f0ff;
+    --link-hover-color: #fcee0a;
+    --hairline-color: #2e2944;
+    --border-color: #2e2944;
   }
 
   body {
     background-color: var(--night) !important;
     background-image: 
-      linear-gradient(rgba(0, 229, 255, 0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 229, 255, 0.025) 1px, transparent 1px) !important;
+      linear-gradient(rgba(0, 240, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.025) 1px, transparent 1px) !important;
     background-size: 40px 40px !important;
     color: var(--text) !important;
     font-family: var(--font-body) !important;
@@ -88,7 +89,7 @@
 
   /* Header */
   #header {
-    background: rgba(14, 11, 26, 0.95) !important;
+    background: rgba(7, 6, 11, 0.95) !important;
     backdrop-filter: blur(12px) !important;
     border-bottom: 2px solid var(--line) !important;
     padding: 0.85rem 1.75rem !important;
@@ -107,7 +108,7 @@
 
   /* Breadcrumbs */
   div.breadcrumbs {
-    background: #140F26 !important;
+    background: #0d0b14 !important;
     border-bottom: 1px solid var(--line) !important;
     color: var(--text-muted) !important;
     font-family: var(--font-display) !important;
@@ -129,13 +130,14 @@
     padding: 1.75rem !important;
   }
   h1 {
-    font-family: var(--font-display) !important;
-    font-weight: 700 !important;
+    font-family: var(--font-poster) !important;
+    font-weight: 900 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.04em !important;
+    letter-spacing: 0.02em !important;
     color: #ffffff !important;
     margin-bottom: 1.25rem !important;
-    font-size: 1.75rem !important;
+    font-size: 2.6rem !important;
+    line-height: 1 !important;
   }
   h2, h3, caption {
     font-family: var(--font-display) !important;
@@ -198,10 +200,10 @@
     background: var(--panel) !important;
   }
   tbody tr:nth-child(even) {
-    background: rgba(36, 29, 66, 0.45) !important;
+    background: rgba(26, 23, 38, 0.45) !important;
   }
   tbody tr:hover {
-    background: rgba(0, 229, 255, 0.08) !important;
+    background: rgba(0, 240, 255, 0.08) !important;
   }
   tbody tr.selected {
     background: rgba(252, 238, 10, 0.12) !important;
@@ -293,7 +295,7 @@
   }
   input[type=text], input[type=password], input[type=email], input[type=url], 
   input[type=number], input[type=tel], textarea, select {
-    background: #0E0B1A !important;
+    background: #07060b !important;
     border: 1px solid var(--line) !important;
     color: #ffffff !important;
     padding: 0.5rem 0.75rem !important;
@@ -305,7 +307,7 @@
   input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, 
   input[type=number]:focus, textarea:focus, select:focus {
     border-color: var(--cyan) !important;
-    box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.25) !important;
+    box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.25) !important;
     outline: none !important;
   }
   .help, p.help {
@@ -321,7 +323,7 @@
   /* Buttons */
   .button, input[type=submit], input[type=button], .submit-row input, a.button {
     background: var(--yellow) !important;
-    color: #0E0B1A !important;
+    color: #07060b !important;
     border: none !important;
     border-radius: 0 !important;
     clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px) !important;
@@ -337,11 +339,11 @@
   .button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover {
     filter: brightness(1.12) !important;
     background: var(--yellow) !important;
-    color: #0E0B1A !important;
+    color: #07060b !important;
   }
   .button.default, input[type=submit].default {
     background: var(--yellow) !important;
-    color: #0E0B1A !important;
+    color: #07060b !important;
     box-shadow: 0 0 12px rgba(252, 238, 10, 0.35) !important;
   }
   .submit-row {
@@ -364,7 +366,7 @@
   }
   .submit-row a.deletelink:hover {
     background: var(--magenta) !important;
-    color: #0E0B1A !important;
+    color: #07060b !important;
   }
 
   /* Messages & Error alerts */
@@ -385,14 +387,14 @@
     border-left-color: var(--yellow) !important;
   }
   ul.messagelist li.warning {
-    border-left-color: #f59e0b !important;
+    border-left-color: #fcee0a !important;
   }
   ul.messagelist li.error {
     border-left-color: var(--magenta) !important;
     color: #ffffff !important;
   }
   .errornote {
-    background: rgba(255, 42, 109, 0.15) !important;
+    background: rgba(255, 0, 60, 0.15) !important;
     border: 1px solid var(--magenta) !important;
     border-left: 4px solid var(--magenta) !important;
     color: #ffffff !important;
@@ -434,7 +436,7 @@
   }
   .object-tools a:hover {
     background: var(--cyan) !important;
-    color: #0E0B1A !important;
+    color: #07060b !important;
   }
 
   /* Pagination */
@@ -474,13 +476,13 @@
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #0E0B1A;
+    background: #07060b;
   }
   ::-webkit-scrollbar-thumb {
-    background: #3A3160;
+    background: #2e2944;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #00E5FF;
+    background: #00f0ff;
   }
 </style>
 {% endblock %}

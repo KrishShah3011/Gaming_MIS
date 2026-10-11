@@ -7,7 +7,7 @@
   <dl>
     <dt>{{ bookings|length|pluralize:"PC,PCs" }}</dt><dd>{{ pc_names }}</dd>
     <dt>Day</dt><dd>{{ first.start|date:"D j M" }}</dd>
-    <dt>Time</dt><dd>{{ first.start|time:"H:i" }}–{{ first.end|time:"H:i" }}</dd>
+    <dt>Time</dt><dd>{{ first.start|time:"H:i" }}-{{ first.end|time:"H:i" }}</dd>
     <dt>Paid</dt><dd>{{ paid|rupees }}</dd>
     <dt>Balance</dt><dd>{{ balance|rupees }}</dd>
   </dl>

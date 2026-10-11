@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}{{ cafe.cafe_name }} — Premier Esports Lounge{% endblock %}</title>
+<title>{% block title %}{{ cafe.cafe_name }} | Esports Arena{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add("js")</script>
 <link rel="stylesheet" href="{% static 'booking/theme.css' %}">
 </head>
 <body>
@@ -48,6 +49,7 @@
 <main class="page">{% block content %}{% endblock %}</main>
 
 <footer class="foot">
+  <span class="foot-mark" aria-hidden="true">{{ cafe.cafe_name }}</span>
   <div class="foot-links">
     <a href="{% url 'home' %}">Home</a>
     <a href="{% url 'book' %}">Book Seats</a>
@@ -57,7 +59,7 @@
     <a href="{% url 'contact' %}">Contact</a>
   </div>
   <div class="foot-meta">
-    {{ cafe.cafe_name }} · Tournament Esports Battle Stations · High Refresh Displays · Gigabit Fiber
+    {{ cafe.cafe_name }}. Tournament battle stations, 240Hz displays, gigabit fiber.
   </div>
 </footer>
 

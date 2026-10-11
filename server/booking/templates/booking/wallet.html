@@ -2,7 +2,7 @@
 {% load booking_extras %}
 {% block title %}Wallet{% endblock %}
 {% block content %}
-<h1>Wallet</h1>
+<h1 class="glitch">Wallet</h1>
 <p class="balance num">{{ balance|rupees }}</p>
 <p class="help">About {{ hours|floatformat:"-1" }} hrs of play at ₹{{ cafe.hourly_rate_rupees }} an hour.</p>
 

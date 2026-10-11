@@ -2,7 +2,7 @@
 {% load booking_extras %}
 {% block title %}Book a seat{% endblock %}
 {% block content %}
-<h1>Book a seat</h1>
+<h1 class="glitch">Book a seat</h1>
 
 <form id="when" method="get" class="step">
   <h2><span class="n">1</span> When</h2>
@@ -39,7 +39,7 @@
     <h2><span class="n">2</span> Seats</h2>
     {% if seats %}
     <p class="help">{{ free_count }} free for {{ minutes|duration }} from {% if start_now %}now{% else %}{{ start|time:"H:i" }}{% endif %}. Tap the seats you want.</p>
-    <div class="floor-legend" style="margin: .75rem 0 1rem;">
+    <div class="floor-legend" style="margin-top: 1rem;">
       <span><span class="legend-dot legend-free"></span> Free</span>
       <span><span class="legend-dot legend-taken"></span> Taken</span>
       <span><span class="legend-dot legend-picked"></span> Selected</span>
@@ -48,7 +48,7 @@
       {% for seat in seats %}
       <label class="seat">
         <input type="checkbox" name="pc" value="{{ seat.pc.id }}"{% if not seat.free %} disabled{% endif %}{% if seat.free and seat.pc.id|stringformat:"s" in picked %} checked{% endif %}>
-        <span class="tile {% if seat.free %}free{% else %}taken{% endif %}">
+        <span class="tile spot {% if seat.free %}free{% else %}taken{% endif %}" style="--i: {{ forloop.counter0 }}">
           <span class="station-tag">Battle Station</span>
           <span class="name">{{ seat.pc }}</span>
           <span class="state">{% if seat.free %}Free{% else %}Taken{% endif %}</span>

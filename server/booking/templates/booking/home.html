@@ -1,57 +1,69 @@
 {% extends "booking/base.html" %}
 {% block content %}
 <section class="hero">
-  {% if is_open %}
-  <div class="live-pill">
-    <span class="radar-dot"></span>
-    <span>{{ free }} of {{ seats|length }} PCs free right now</span>
-  </div>
-  {% else %}
-  <div class="live-pill closed">
-    <span class="radar-dot closed"></span>
-    <span>Closed now</span>
-  </div>
-  {% endif %}
+  <div class="hero-floor" aria-hidden="true"></div>
+  <div>
+    {% if is_open %}
+    <div class="live-pill">
+      <span class="radar-dot"></span>
+      <span>{{ free }} of {{ seats|length }} PCs free right now</span>
+    </div>
+    {% else %}
+    <div class="live-pill closed">
+      <span class="radar-dot closed"></span>
+      <span>Closed now</span>
+    </div>
+    {% endif %}
 
-  <h1 class="hero-title">
-    NEXT LEVEL <span class="text-neon">ESPORTS ARENA</span> & GAMING LOUNGE
-  </h1>
+    <h1 class="hero-title glitch">
+      <span>Next level</span>
+      <span class="text-neon">esports arena</span>
+    </h1>
 
-  <p class="lede">
-    ₹{{ cafe.hourly_rate_rupees }} an hour. Pick your seat, pay from your wallet, play.{% if not is_open %} We open at {{ cafe.opens_at|time:"H:i" }}.{% endif %} Experience 240Hz tournament displays, uncapped FPS on high-performance rigs, and low-latency gigabit fiber.
-  </p>
+    <p class="lede">₹{{ cafe.hourly_rate_rupees }} an hour. Pick your seat, pay from your wallet, play.{% if not is_open %} We open at {{ cafe.opens_at|time:"H:i" }}.{% endif %}</p>
 
-  <div class="actions">
-    {% if is_open %}<a class="btn" href="{% url 'book' %}?start=now">Start now</a>{% endif %}
-    <a class="btn btn-ghost" href="{% url 'book' %}">Book for later</a>
-    <a class="btn btn-outline" href="#specs">Explore Rigs & Specs</a>
+    <div class="actions">
+      {% if is_open %}<a class="btn" href="{% url 'book' %}?start=now">Start now</a>{% endif %}
+      <a class="btn{% if is_open %} btn-ghost{% endif %}" href="{% url 'book' %}">Book for later</a>
+    </div>
   </div>
 
-  <div class="specs-ticker cut-small">
-    <div class="ticker-item"><span>🖥️</span> <strong>240Hz Fast-IPS</strong> Monitors</div>
-    <div class="ticker-item"><span>⚡</span> <strong>RTX 40-Series</strong> GPUs</div>
-    <div class="ticker-item"><span>🌐</span> <strong>&lt;5ms Ping</strong> Gigabit Leased Fiber</div>
-    <div class="ticker-item"><span>🎧</span> <strong>Mechanical</strong> RGB Battle Gear</div>
-  </div>
+  <aside class="radar" aria-label="Arena status">
+    <div class="radar-head"><span>Arena floor</span><span>{% if is_open %}Live{% else %}Offline{% endif %}</span></div>
+    {% if is_open %}
+    <p class="radar-count">{{ free }}<small>/ {{ seats|length }} free</small></p>
+    {% else %}
+    <p class="radar-count closed">Opens {{ cafe.opens_at|time:"H:i" }}</p>
+    {% endif %}
+    {% if seats %}
+    <div class="radar-map" aria-hidden="true">
+      {% for seat in seats %}<i{% if not seat.free %} class="taken"{% endif %} style="--i: {{ forloop.counter0 }}"></i>{% endfor %}
+    </div>
+    {% endif %}
+    <dl class="radar-foot">
+      <div><dt>Rate</dt><dd class="text-neon">₹{{ cafe.hourly_rate_rupees }}/hr</dd></div>
+      <div><dt>Hours</dt><dd>{{ cafe.opens_at|time:"H:i" }}-{{ cafe.closes_at|time:"H:i" }}</dd></div>
+    </dl>
+  </aside>
 </section>
 
-<section id="floor" class="floor-wrap">
-  <div class="section-head">
-    <h2>Live Arena Floor</h2>
-    <p>Real-time battle station availability across the arena floor. Pick any open station to book.</p>
+<section id="floor">
+  <div class="section-head" data-reveal>
+    <h2 data-scramble>Live arena floor</h2>
+    <p>Every battle station, right now. Pick any open one to book it.</p>
   </div>
 
   <div class="floor-legend">
-    <span><span class="legend-dot legend-free"></span> Free</span>
-    <span><span class="legend-dot legend-taken"></span> Taken</span>
-    <span><span class="legend-dot legend-picked"></span> Your Seat</span>
+    <span><span class="legend-dot legend-free"></span>Free</span>
+    <span><span class="legend-dot legend-taken"></span>Taken</span>
+    <span><span class="legend-dot legend-picked"></span>Your seat</span>
   </div>
 
   {% if seats %}
   <div class="floor" aria-label="Seat map right now">
     {% for seat in seats %}
-    <a href="{% url 'book' %}{% if seat.free %}?pc={{ seat.pc.id }}{% endif %}" class="tile {% if seat.free %}free{% else %}taken{% endif %}">
-      <span class="station-tag">Battle Station</span>
+    <a href="{% url 'book' %}{% if seat.free %}?pc={{ seat.pc.id }}{% endif %}" class="tile spot {% if seat.free %}free{% else %}taken{% endif %}" style="--i: {{ forloop.counter0 }}">
+      <span class="station-tag">Battle station</span>
       <span class="name">{{ seat.pc }}</span>
       <span class="state">{% if seat.free %}Free{% else %}Taken{% endif %}</span>
     </a>
@@ -61,75 +73,62 @@
 </section>
 
 <section id="specs">
-  <div class="section-head">
-    <h2>Tournament-Grade Battle Stations</h2>
-    <p>Engineered for competitive esports, zero-latency aiming, and ultra-smooth frame rates.</p>
+  <div class="section-head" data-reveal>
+    <h2 data-scramble>Tournament-grade rigs</h2>
+    <p>Built for competitive play: fast aim, smooth frames, no lag.</p>
   </div>
 
-  <div class="specs-grid">
-    <div class="spec-card cut">
-      <span class="spec-icon">🖥️</span>
-      <h3>240Hz Fast-IPS Displays</h3>
-      <p>Tournament-certified panels with true 1ms G-Sync response for zero ghosting in high-intensity competitive shooters.</p>
-    </div>
-
-    <div class="spec-card cut">
-      <span class="spec-icon">⚡</span>
-      <h3>High-FPS Battle Rigs</h3>
-      <p>Intel Core i7 & Ryzen 7 processors equipped with NVIDIA GeForce RTX graphics, delivering locked 300+ FPS in CS2, Valorant & Apex.</p>
-    </div>
-
-    <div class="spec-card cut">
-      <span class="spec-icon">🎧</span>
-      <h3>Pro-Tier Peripherals</h3>
-      <p>Hot-swappable mechanical keyboards with linear speed switches, 8000Hz optical esports mice, and studio headsets.</p>
-    </div>
-
-    <div class="spec-card cut">
-      <span class="spec-icon">🌐</span>
-      <h3>Sub-5ms Leased Fiber</h3>
-      <p>Dual redundant commercial gigabit leased lines with direct peering to game servers across Mumbai and Singapore. 0% packet loss guaranteed.</p>
-    </div>
+  <div class="bento">
+    <article class="bento-cell bento-wide bento-grid spot" data-reveal>
+      <span class="stat">240Hz</span>
+      <h3>Fast-IPS displays</h3>
+      <p>Tournament panels with 1ms G-Sync response. No ghosting in fast shooters.</p>
+    </article>
+    <article class="bento-cell bento-hot" data-reveal style="--i: 1">
+      <span class="stat">300+</span>
+      <h3>FPS battle rigs</h3>
+      <p>Core i7 and Ryzen 7 with GeForce RTX. Locked high frames in CS2, Valorant and Apex.</p>
+    </article>
+    <article class="bento-cell spot" data-reveal>
+      <span class="stat">8000Hz</span>
+      <h3>Pro peripherals</h3>
+      <p>Hot-swap mechanical keyboards, optical esports mice and studio headsets.</p>
+    </article>
+    <article class="bento-cell bento-wide bento-hazard spot" data-reveal style="--i: 1">
+      <span class="stat">&lt;5ms</span>
+      <h3>Leased fiber</h3>
+      <p>Dual gigabit leased lines with direct peering to game servers in Mumbai and Singapore.</p>
+    </article>
   </div>
 </section>
 
-<section id="games">
-  <div class="section-head">
-    <h2>Ready To Play Instantly</h2>
-    <p>All top competitive titles pre-installed on high-speed NVMe storage and auto-updated before every match.</p>
+<section id="games" aria-labelledby="games-title">
+  <div class="section-head" data-reveal>
+    <h2 id="games-title" data-scramble>Ready to play</h2>
+    <p>Top titles pre-installed on NVMe and updated before you sit down.</p>
   </div>
-
-  <div class="games-shelf">
-    <span class="game-badge cut-small">VALORANT</span>
-    <span class="game-badge cut-small">COUNTER-STRIKE 2</span>
-    <span class="game-badge cut-small">APEX LEGENDS</span>
-    <span class="game-badge cut-small">DOTA 2</span>
-    <span class="game-badge cut-small">CALL OF DUTY: WARZONE</span>
-    <span class="game-badge cut-small">OVERWATCH 2</span>
-    <span class="game-badge cut-small">EA SPORTS FC 25</span>
-    <span class="game-badge cut-small">FORTNITE</span>
-    <span class="game-badge cut-small">GTA V / FIVEM</span>
-    <span class="game-badge cut-small">ROCKET LEAGUE</span>
+  <div class="marquee">
+    <div class="marquee-track">
+      <ul><li>Valorant</li><li>Counter-Strike 2</li><li>Apex Legends</li><li>Dota 2</li><li>Call of Duty: Warzone</li><li>Overwatch 2</li><li>EA Sports FC 25</li><li>Fortnite</li><li>GTA V / FiveM</li><li>Rocket League</li></ul>
+      <ul aria-hidden="true"><li>Valorant</li><li>Counter-Strike 2</li><li>Apex Legends</li><li>Dota 2</li><li>Call of Duty: Warzone</li><li>Overwatch 2</li><li>EA Sports FC 25</li><li>Fortnite</li><li>GTA V / FiveM</li><li>Rocket League</li></ul>
+    </div>
   </div>
 </section>
 
 {% if offers %}
 <section id="offers">
-  <div class="section-head">
-    <h2>Top-up offers</h2>
-    <p>Fuel your grind with bonus wallet cash. Top up once via Razorpay or cash at counter, play anytime without checkout delays.</p>
+  <div class="section-head" data-reveal>
+    <h2 data-scramble>Top-up offers</h2>
+    <p>Bonus wallet cash. Top up online or with cash at the counter, then book without checkout.</p>
   </div>
 
   <div class="offers">
     {% for offer in offers %}
-    <a class="offer cut" href="{% url 'wallet' %}">
-      <div class="offer-top">
-        <span class="offer-pill">Bonus Credit</span>
-        <span style="font-family:var(--display);font-weight:700;color:var(--cyan);font-size:.85rem;">SAVE EXTRA</span>
-      </div>
+    <a class="offer spot" href="{% url 'wallet' %}" data-reveal style="--i: {{ forloop.counter0 }}">
+      <span class="offer-pill">Bonus credit</span>
       <p class="big">Pay ₹{{ offer.pay_rupees }}, get ₹{{ offer.pay_rupees|add:offer.bonus_rupees }}</p>
       <p class="help">About {{ offer.hours|floatformat:"-1" }} hrs of play.</p>
-      <div class="offer-action">Claim in Wallet →</div>
+      <span class="offer-action">Claim in wallet</span>
     </a>
     {% endfor %}
   </div>
@@ -137,57 +136,52 @@
 {% endif %}
 
 <section id="amenities">
-  <div class="section-head">
-    <h2>The Ultimate Gamer Lounge Experience</h2>
-    <p>More than just PCs — an authentic gaming hangout designed for long sessions and squad play.</p>
+  <div class="section-head" data-reveal>
+    <span class="eyebrow">The lounge</span>
+    <h2 data-scramble>Built for long sessions</h2>
   </div>
 
-  <div class="amenities-grid">
-    <div class="amenity-card cut">
-      <span class="amenity-icon">💺</span>
-      <h3>Ergonomic Comfort</h3>
-      <p>Pro ergonomic gaming seating, wide personal desk space, and climate-controlled chilled arena for maximum endurance.</p>
-    </div>
-
-    <div class="amenity-card cut">
-      <span class="amenity-icon">🥤</span>
-      <h3>Desk-Side Refuel</h3>
-      <p>Cold brew coffees, energy drinks, and gourmet gaming snacks ordered from the counter and brought right to your station.</p>
-    </div>
-
-    <div class="amenity-card cut">
-      <span class="amenity-icon">🛡️</span>
-      <h3>5v5 Squad Scrims</h3>
-      <p>Boot camp rows with adjacent seating configured for zero-latency communication, team scrims, and LAN tournaments.</p>
-    </div>
-  </div>
+  <ul class="perks">
+    <li data-reveal>
+      <h3>Comfort</h3>
+      <p>Ergonomic gaming chairs, wide desks and a cool, air-conditioned floor.</p>
+    </li>
+    <li data-reveal>
+      <h3>Desk-side refuel</h3>
+      <p>Cold brew, energy drinks and snacks, ordered at the counter and brought to your seat.</p>
+    </li>
+    <li data-reveal>
+      <h3>5v5 squad rows</h3>
+      <p>Adjacent seating for team scrims, comms without lag, and LAN tournaments.</p>
+    </li>
+  </ul>
 </section>
 
 <section id="location">
-  <div class="section-head">
-    <h2>Arena Location & Hours</h2>
-    <p>Drop by or book in advance to secure your battle station.</p>
+  <div class="section-head" data-reveal>
+    <h2 data-scramble>Find the arena</h2>
+    <p>Walk in or book ahead to lock your station.</p>
   </div>
 
-  <div class="info-card cut">
-    <div class="info-block">
-      <h4>Operating Hours</h4>
-      <p>Daily: {{ cafe.opens_at|time:"H:i" }} – {{ cafe.closes_at|time:"H:i" }}</p>
-      <p style="color:var(--cyan);font-size:.85rem;margin-top:.25rem;">{% if is_open %}Open Right Now{% else %}Currently Closed{% endif %}</p>
+  <div class="info-card" data-reveal>
+    <div>
+      <h4 class="text-cyan">Open daily</h4>
+      <p class="hours num">{{ cafe.opens_at|time:"H:i" }}-{{ cafe.closes_at|time:"H:i" }}</p>
+      <p class="open-state{% if not is_open %} closed{% endif %}">{% if is_open %}Open right now{% else %}Currently closed{% endif %}</p>
     </div>
-
-    {% if cafe.address %}
-    <div class="info-block">
-      <h4>Address</h4>
-      <p>{{ cafe.address }}</p>
-    </div>
-    {% endif %}
-
-    <div class="info-block">
-      <h4>Contact & Assistance</h4>
-      {% if cafe.contact_phone %}<p>Phone: {{ cafe.contact_phone }}</p>{% endif %}
-      {% if cafe.contact_email %}<p>Email: {{ cafe.contact_email }}</p>{% endif %}
-      <p style="margin-top:.35rem;"><a href="{% url 'contact' %}" style="font-family:var(--display);font-weight:700;font-size:.85rem;text-transform:uppercase;">Full Contact Details →</a></p>
+    <div>
+      {% if cafe.address %}
+      <div class="info-block">
+        <h4>Address</h4>
+        <p>{{ cafe.address }}</p>
+      </div>
+      {% endif %}
+      <div class="info-block">
+        <h4>Contact</h4>
+        {% if cafe.contact_phone %}<p>Phone: {{ cafe.contact_phone }}</p>{% endif %}
+        {% if cafe.contact_email %}<p>Email: {{ cafe.contact_email }}</p>{% endif %}
+        <p><a href="{% url 'contact' %}">Full contact details</a></p>
+      </div>
     </div>
   </div>
 </section>
